@@ -8,7 +8,7 @@ This plugin is in development.
 USAGE
 -----
 
-Clone this git in <$WordPress-directory>/wp-content/plugins/ and activate it in Wordpress admin panel.
+Clone this git in `<$WordPress-directory>/wp-content/plugins/` and activate it in Wordpress admin panel.
 
 LICENSE
 -------
