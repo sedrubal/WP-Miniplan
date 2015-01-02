@@ -1,6 +1,6 @@
 <?php
 
-defined('ABSPATH') or die("[!] This scipt must be executed by a wordpress instance!\r\n");
+defined('ABSPATH') or die("[!] This script must be executed by a Wordpress instance!\r\n");
 
 /**
  * the user 'interface' and database things
@@ -54,7 +54,7 @@ function print_miniplan( $atts ) {
 }
 
 //returns a (html)upload form
-function print_miniplan_upload_form( $atts , $current_mpl ) {
+function print_miniplan_upload_form( $atts , $current_mpl=array() ) {
 	$role = array_shift(wp_get_current_user()->roles);
 	if ($role !== "administrator") {
 		return "";
@@ -85,7 +85,7 @@ function print_miniplan_upload_form( $atts , $current_mpl ) {
 
 			jQuery(document).ready(function() {
 				jQuery("#beginning-datepicker").datepicker({
-					dateFormat : "d.m.y",
+					dateFormat : "d.m.y"
 				});
 			});
 	        </script>
@@ -140,8 +140,8 @@ function print_miniplan_upload_form( $atts , $current_mpl ) {
 			default:
 				$content .= '<p>Wähle eine Aktion:</p><form action="#miniplan_admin_panel" method="get">
 						<button name="miniplan_admin_action" id="upload_btn" class="btn btn-default" value="upload">Einen neuen Plan hochladen</button>
-						<button name="miniplan_admin_action" id="edit_btn" class="btn btn-default" value="edit" ' . ((count($current_mpl) === 0) ? "disabled") . '>Den ausgew&auml;hlten Plan editieren</button>
-						<button name="miniplan_admin_action" id="delete_btn" class="btn btn-default" value="delete" ' . ((count($current_mpl) === 0) ? "disabled") . '>Den ausgew&auml;hlten Plan l&ouml;schen</button>
+						<button name="miniplan_admin_action" id="edit_btn" class="btn btn-default" value="edit" ' . ((count($current_mpl) === 0) ? 'disabled' : '') . '>Den ausgew&auml;hlten Plan editieren</button>
+						<button name="miniplan_admin_action" id="delete_btn" class="btn btn-default" value="delete" ' . ((count($current_mpl) === 0) ? 'disabled' : '') . '>Den ausgew&auml;hlten Plan l&ouml;schen</button>
 					</form></div>';
 		}
 		return $content;
