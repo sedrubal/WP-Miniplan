@@ -13,9 +13,10 @@
 defined('ABSPATH') or die("[!] This scipt must be executed by a wordpress instance!\r\n");
 
 global $miniplan_db_version;
-$miniplan_db_version = '0.0.3';
+$miniplan_db_version = '0.0.4';
 
 require_once( 'views.php' );
+require_once( 'db.php' );
 
 /**
  * install...
@@ -32,7 +33,7 @@ function miniplan_install() {
 
         $sql = "CREATE TABLE $table_name (
                 id mediumint(9) NOT NULL AUTO_INCREMENT,
-                feedid tinyint DEFAULT '1' NOT NULL,
+                feed_id tinyint DEFAULT '1' NOT NULL,
 		        beginning datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
 		        until datetime DEFAULT '0000-00-07 00:00:00' NOT NULL,
                 title tinytext NOT NULL,
@@ -47,19 +48,7 @@ function miniplan_install() {
 }
 
 function miniplan_install_data() {
-        global $wpdb;
-
-        $table_name = $wpdb->prefix . 'miniplan';
-
-        $wpdb->insert($table_name,
-                [
-			'feedid' => '1',
-                        'beginning' => current_time( 'Y-m-d' ),
-                        'until' => date('Y-m-d', strtotime("+1 week")),
-                        'title' => 'Demo Plan',
-                        'text' => 'Alle Ministranten',
-                ]
-        );
+	miniplan_add_new( 1, 'Demo Plan', 'Alle Ministranten', current_time( 'Y-m-d' ), date('Y-m-d', strtotime("+1 week")));
 }
 
 function miniplan_update_db_check() {

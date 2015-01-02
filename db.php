@@ -8,19 +8,19 @@ defined('ABSPATH') or die("[!] This script must be executed by a Wordpress insta
 
 /**
  * Adds a new miniplan to the database
- * @param int $feedid: the id of the current miniplan feed (int)
+ * @param int $feed_id: the id of the current miniplan feed (int)
  * @param string $title: the title of the new miniplan
  * @param string $text: the text of the new miniplan
  * @param string $beginning: the start date for the new miniplan
  * @param string $until: the last date of the new miniplan
  */
-function miniplan_add_new( $feedid, $title, $text, $beginning, $until ) {
+function miniplan_add_new( $feed_id, $title, $text, $beginning, $until ) {
 	global $wpdb;
         $table_name = $wpdb->prefix . 'miniplan';
 	$wpdb->insert(
 			$table_name,
 			[
-				'feedid' 	=> $feedid,
+				'feed_id' 	=> $feed_id,
 				'beginning' 	=> miniplan_date_format($beginning, "sql"),
 				'until' 	=> miniplan_date_format($until, "sql"),
 				'title' 	=> $title,
@@ -33,8 +33,11 @@ function miniplan_add_new( $feedid, $title, $text, $beginning, $until ) {
 /**
  * Edits an existing miniplan in the database
  * @param int $mpl_id: the id of the miniplan
- * @param int $feedid: the id of the current miniplan feed (int)
- * @param stdClass $mpl: a standard class containing the new values as variables
+ * @param int $feed_id: the id of the current miniplan feed (int)
+ * @param string $title: the title of the new miniplan
+ * @param string $text: the text of the new miniplan
+ * @param string $beginning: the start date for the new miniplan
+ * @param string $until: the last date of the new miniplan
  */
 function miniplan_edit_existing($mpl_id, $feed_id, $title, $text, $beginning, $until) {
 
@@ -43,14 +46,29 @@ function miniplan_edit_existing($mpl_id, $feed_id, $title, $text, $beginning, $u
 	$wpdb->update(
 			$table_name,
 			[
-				'feedid' 	=> $feed_id,
+				'feed_id' 	=> $feed_id,
 				'beginning' 	=> miniplan_date_format($beginning, "sql"),
 				'until' 	=> miniplan_date_format($until, "sql"),
 				'title' 	=> $title,
 				'text' 		=> $text
             		],
-			['id' => intval($mpl_id) ],
+			['id' => $mpl_id ],
 			['%d' , '%s', '%s', '%s', '%s'],
+			['%d']
+	);
+}
+
+/**
+ * Deletes an existing miniplan in the database
+ * @param int $mpl_id: the id of the miniplan
+ */
+function miniplan_delete_existing($mpl_id) {
+
+	global $wpdb;
+        $table_name = $wpdb->prefix . 'miniplan';
+	$wpdb->delete(
+			$table_name,
+			['id' => $mpl_id ],
 			['%d']
 	);
 }

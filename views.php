@@ -18,8 +18,9 @@ function print_miniplan( $atts ) {
 	$table_name = $wpdb->prefix . 'miniplan';
 
 	$date = get_query_var( "miniplan", "latest" );
+	if ( !is_numeric($date)) { $date = "latest"; }
 
-	$dates = $wpdb->get_results( 'SELECT id,beginning,until FROM `' . $table_name . '` WHERE feedid = \'' . intval($atts["id"]) . '\' ORDER BY beginning DESC', OBJECT ); //get available plans from db (for dropdown)
+	$dates = $wpdb->get_results( 'SELECT id,beginning,until FROM `' . $table_name . '` WHERE feed_id = \'' . intval($atts["id"]) . '\' ORDER BY beginning DESC', OBJECT ); //get available plans from db (for dropdown)
 	//build dropdown
 	$ret = '<form action="#_" method="get">
 		Datum: <select onchange="this.form.submit()" name="miniplan" required>
@@ -44,7 +45,7 @@ function print_miniplan( $atts ) {
 			}
 		}
 
-		$results = $wpdb->get_results( 'SELECT * FROM `' . $table_name . '` WHERE feedid = \'' . intval($atts["id"]) . '\' AND DATE_FORMAT(beginning, "%Y-%m-%d") = DATE_FORMAT(\'' . date('Y-m-d', $mostRecent) . '\', "%Y-%m-%d") ORDER BY beginning DESC LIMIT 1', OBJECT );
+		$results = $wpdb->get_results( 'SELECT * FROM `' . $table_name . '` WHERE feed_id = \'' . intval($atts["id"]) . '\' AND DATE_FORMAT(beginning, "%Y-%m-%d") = DATE_FORMAT(\'' . date('Y-m-d', $mostRecent) . '\', "%Y-%m-%d") ORDER BY beginning DESC LIMIT 1', OBJECT );
 	} else if (is_numeric($date)) {
 		$results = $wpdb->get_results( 'SELECT * FROM `' . $table_name . '` WHERE id = \'' . intval($date) . '\' ORDER BY beginning LIMIT 1', OBJECT );
 	}
@@ -92,7 +93,6 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 		*/
 		//TODO update second datepicker (+1 week) when fist value changed
 		$miniplan_edit_form = '<form action="" method="post" class="form-horizontal"><fieldset>
-
 	<legend><h3>' . ((get_query_var( "miniplan_admin_action", "upload" ) === 'upload') ? 'Einen neuen Miniplan hochladen' : 'Den ausgew&auml;hlten Miniplan bearbeiten') . '</h3></legend>
 	<label class="control-label" for="title">Titel</label>
 	<div class="controls">
@@ -139,9 +139,21 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 		</div>
 	</div>
 </fieldset></form>';
-		$miniplan_delete_form = '<p>Deleting is coming soon</p>';
-		$cancel_btn = '<form method="get" action="#_"><button name="miniplan_admin_action" id="cancel_btn" class="btn btn-default" value="select" type="submit" formmethod="get" formaction="">Abbrechen</button><input type="hidden" name="miniplan" value="' . $master_mpl->id . '" /></form>';
-		$proceed_btn = '<form method="get" action="#_"><button name="miniplan_admin_action" id="proceed_btn" class="btn btn-default" value="proceed" type="submit" formmethod="get" formaction="">Fortfahren</button> <input type="hidden" name="miniplan" value="' . $master_mpl->id . '" /></form>';
+
+		$miniplan_delete_form = '<form action="" method="post" class="form-horizontal"><fieldset>
+	<legend><h3>Ausgew&auml;hlten Miniplan l&ouml;schen</h3></legend>' .
+	miniplan_message('Möchtest du wirklich den Plan "' . $master_mpl->title . '" vom ' . $master_mpl->beginning . ' bis zum ' . $master_mpl->until . ' l&ouml;schen?', "question") .
+	'<div class="control-group">
+		<div class="controls">
+			<button id="submit" name="mpl_submit" class="btn btn-default delete" value="TRUE">L&ouml;schen</button>
+		</div>
+	</div>
+</fieldset></form>';
+		$cancel_btn = '<form method="get" action="#_">
+				<button name="miniplan_admin_action" id="cancel_btn" class="btn btn-default cancel" value="select" type="submit" formmethod="get" formaction="">Abbrechen</button>
+				<input type="hidden" name="miniplan" value="' . $master_mpl->id . '" /></form>';
+		$proceed_btn = '<form method="get" action="#_"><button name="miniplan_admin_action" id="proceed_btn" class="btn btn-default" value="proceed" type="submit" formmethod="get" formaction="">Fortfahren</button>
+				<input type="hidden" name="miniplan" value="' . ((get_query_var( "miniplan_admin_action", "" ) === 'delete') ? 'latest' : $master_mpl->id) . '" /></form>';
 
 		/**
 		 * ----------------------------------------------</VARIABLES>
@@ -154,7 +166,7 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 					miniplan_add_new($feed_id, get_query_var( "mpl_title", "" ), get_query_var( "mpl_text", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
 					$content .= miniplan_message("Der Miniplan wurde erfolgreich hochgeladen.", "success") . $proceed_btn;
 				} else {
-					$content .= $miniplan_edit_form . $cancel_btn;
+					$content .= $miniplan_edit_form . $cancel_btn . '</div>';
 				}
 				break;
 			case "edit":
@@ -162,18 +174,23 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 					miniplan_edit_existing($master_mpl->id, $feed_id, get_query_var( "mpl_title", "" ), get_query_var( "mpl_text", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
 					$content .= miniplan_message("Der Miniplan wurde erfolgreich bearbeitet.", "success") . $proceed_btn;
 				} else {
-					$content .= $miniplan_edit_form . $cancel_btn;
+					$content .= $miniplan_edit_form . $cancel_btn . '</div>';
 				}
 				break;
 			case "delete":
-				$content .= $submitted ? (miniplan_message("Der Miniplan wurde erfolgreich gelöscht.", "success") . $proceed_btn) : ($miniplan_delete_form. $cancel_btn);
+				if ($submitted) {
+					miniplan_delete_existing($master_mpl->id);
+					$content .= miniplan_message("Der Miniplan wurde erfolgreich gel&ouml;scht.", "success") . $proceed_btn;
+				} else {
+					$content .= $miniplan_delete_form . $cancel_btn . '</div>';
+				}
 				break;
 			default:
 				$content .= '<p>Wähle eine Aktion:</p><form action="#miniplan_admin_panel" method="get">
 						<input type="hidden" name="miniplan" value="' . $master_mpl->id . '" />
-						<button name="miniplan_admin_action" id="upload_btn" class="btn btn-default" value="upload">Einen neuen Plan hochladen</button>
-						<button name="miniplan_admin_action" id="edit_btn" class="btn btn-default" value="edit" ' . ((count($current_mpl) === 0) ? 'disabled' : '') . '>Den ausgew&auml;hlten Plan editieren</button>
-						<button name="miniplan_admin_action" id="delete_btn" class="btn btn-default" value="delete" ' . ((count($current_mpl) === 0) ? 'disabled' : '') . '>Den ausgew&auml;hlten Plan l&ouml;schen</button>
+						<button name="miniplan_admin_action" id="upload_btn" class="btn btn-default upload" value="upload">Einen neuen Plan hochladen</button>
+						<button name="miniplan_admin_action" id="edit_btn" class="btn btn-default edit" value="edit" ' . ((count($current_mpl) === 0) ? 'disabled' : '') . '>Den ausgew&auml;hlten Plan editieren</button>
+						<button name="miniplan_admin_action" id="delete_btn" class="btn btn-default delete" value="delete" ' . ((count($current_mpl) === 0) ? 'disabled' : '') . '>Den ausgew&auml;hlten Plan l&ouml;schen</button>
 					</form></div>';
 		}
 		return $content;
