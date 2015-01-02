@@ -6,6 +6,8 @@ defined('ABSPATH') or die("[!] This script must be executed by a Wordpress insta
  * the user 'interface' and database things
  */
 
+require_once( 'db.php' );
+
 /**
  * prints the miniplan things
  * @param array $atts: the Wordpress tag attributes
@@ -80,8 +82,9 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 		} else {
 			$master_mpl->title = ((strlen($current_mpl->title) === 0) ? 'Miniplan' : $current_mpl->title);
 			$master_mpl->text = ((strlen($current_mpl->text) === 0 ? "Alle Ministranten" : $current_mpl->text));
-			$master_mpl->beginning = ((strlen($current_mpl->beginning) === 0 ? miniplan_date_format(current_time( 'd.m.y' )) : $current_mpl->beginning));
-			$master_mpl->until = ((strlen($current_mpl->until) === 0 ? miniplan_date_format(date('d.m.y', strtotime('+1 week'))) : $current_mpl->until));
+			$master_mpl->beginning = ((strlen($current_mpl->beginning) === 0 ? miniplan_date_format(current_time( 'd.m.y' )) : miniplan_date_format($current_mpl->beginning)));
+			$master_mpl->until = ((strlen($current_mpl->until) === 0 ? miniplan_date_format(strtotime('+1 week')) : miniplan_date_format($current_mpl->until)));
+			$master_mpl->id = $current_mpl->id;
 		}
 		$content = '<div class="miniplan_admin_panel" id="miniplan_admin_panel"><h3>Miniplan Admin-Panel</h3>';
 		/**
@@ -90,7 +93,7 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 		//TODO update second datepicker (+1 week) when fist value changed
 		$miniplan_edit_form = '<form action="" method="post" class="form-horizontal"><fieldset>
 
-	<legend><h3>' . 'Einen neuen Miniplan hochladen' . '</h3></legend>
+	<legend><h3>' . ((get_query_var( "miniplan_admin_action", "upload" ) === 'upload') ? 'Einen neuen Miniplan hochladen' : 'Den ausgew&auml;hlten Miniplan bearbeiten') . '</h3></legend>
 	<label class="control-label" for="title">Titel</label>
 	<div class="controls">
 		<input id="title" name="mpl_title" placeholder="Miniplan" value="' . $master_mpl->title . '" class="input-xlarge" required type="text">
@@ -132,13 +135,13 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 
 	<div class="control-group">
 		<div class="controls">
-			<button id="submit" name="mpl_submit" class="btn btn-default" value="TRUE">Hochladen</button>
+			<button id="submit" name="mpl_submit" class="btn btn-default" value="TRUE">' . ((get_query_var( "miniplan_admin_action", "upload" ) === 'upload') ? 'Hochladen' : 'Aktualisieren') . '</button>
 		</div>
 	</div>
 </fieldset></form>';
 		$miniplan_delete_form = '<p>Deleting is coming soon</p>';
-		$cancel_btn = '<form method="get" action="#_"><button name="miniplan_admin_action" id="cancel_btn" class="btn btn-default" value="select" type="submit" formmethod="get" formaction="">Abbrechen</button></form>';
-		$proceed_btn = '<form method="get" action="#_"><button name="miniplan_admin_action" id="proceed_btn" class="btn btn-default" value="proceed" type="submit" formmethod="get" formaction="">Fortfahren</button></form>';
+		$cancel_btn = '<form method="get" action="#_"><button name="miniplan_admin_action" id="cancel_btn" class="btn btn-default" value="select" type="submit" formmethod="get" formaction="">Abbrechen</button><input type="hidden" name="miniplan" value="' . $master_mpl->id . '" /></form>';
+		$proceed_btn = '<form method="get" action="#_"><button name="miniplan_admin_action" id="proceed_btn" class="btn btn-default" value="proceed" type="submit" formmethod="get" formaction="">Fortfahren</button> <input type="hidden" name="miniplan" value="' . $master_mpl->id . '" /></form>';
 
 		/**
 		 * ----------------------------------------------</VARIABLES>
@@ -155,13 +158,19 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 				}
 				break;
 			case "edit":
-				$content .= $submitted ? (miniplan_message("Der Miniplan wurde erfolgreich bearbeitet.", "success") . $proceed_btn) : ($miniplan_edit_form. $cancel_btn);
+				if ($submitted) {
+					miniplan_edit_existing($master_mpl->id, $feed_id, get_query_var( "mpl_title", "" ), get_query_var( "mpl_text", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
+					$content .= miniplan_message("Der Miniplan wurde erfolgreich bearbeitet.", "success") . $proceed_btn;
+				} else {
+					$content .= $miniplan_edit_form . $cancel_btn;
+				}
 				break;
 			case "delete":
 				$content .= $submitted ? (miniplan_message("Der Miniplan wurde erfolgreich gelöscht.", "success") . $proceed_btn) : ($miniplan_delete_form. $cancel_btn);
 				break;
 			default:
 				$content .= '<p>Wähle eine Aktion:</p><form action="#miniplan_admin_panel" method="get">
+						<input type="hidden" name="miniplan" value="' . $master_mpl->id . '" />
 						<button name="miniplan_admin_action" id="upload_btn" class="btn btn-default" value="upload">Einen neuen Plan hochladen</button>
 						<button name="miniplan_admin_action" id="edit_btn" class="btn btn-default" value="edit" ' . ((count($current_mpl) === 0) ? 'disabled' : '') . '>Den ausgew&auml;hlten Plan editieren</button>
 						<button name="miniplan_admin_action" id="delete_btn" class="btn btn-default" value="delete" ' . ((count($current_mpl) === 0) ? 'disabled' : '') . '>Den ausgew&auml;hlten Plan l&ouml;schen</button>
@@ -195,29 +204,4 @@ function miniplan_date_format( $strdate , $mode="human") {
  */
 function miniplan_message( $message , $state ) {
 	return '<div class="messagebox ' . ($state === "success" ? 'success" style="border:1px solid black;margin:5px;padding:5px;text-align:center;color:white;background-color:#55AA55;"' : 'error" style="border:1px solid black;margin:5px;padding:5px;text-align:center;color:white;background-color:#AA5555;"') . ' id="messagebox"><h4>' . $message . '</h4></div>';
-}
-
-
-/**
- * Adds a new miniplan to the database
- * @param int $feedid: the id of the current miniplan feed (int)
- * @param string $title: the title of the new miniplan
- * @param string $text: the text of the new miniplan
- * @param string $beginning: the start date for the new miniplan
- * @param string $until: the last date of the new miniplan
- */
-function miniplan_add_new( $feedid, $title, $text, $beginning, $until) {
-	global $wpdb;
-        $table_name = $wpdb->prefix . 'miniplan';
-	$wpdb->insert(
-			$table_name,
-			[
-				'feedid' 	=> $feedid,
-				'beginning' 	=> miniplan_date_format($beginning, "sql"),
-				'until' 	=> miniplan_date_format($until, "sql"),
-				'title' 	=> $title,
-				'text' 		=> $text
-            ],
-			['%d' , '%s', '%s', '%s', '%s']
-	);
 }
