@@ -33,8 +33,8 @@ function miniplan_install() {
         $sql = "CREATE TABLE $table_name (
                 id mediumint(9) NOT NULL AUTO_INCREMENT,
                 feedid tinyint DEFAULT '1' NOT NULL,
-		beginning datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-		until datetime DEFAULT '0000-00-07 00:00:00' NOT NULL,
+		        beginning datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+		        until datetime DEFAULT '0000-00-07 00:00:00' NOT NULL,
                 title tinytext NOT NULL,
                 text text NOT NULL,
                 UNIQUE KEY id (id)
@@ -52,13 +52,13 @@ function miniplan_install_data() {
         $table_name = $wpdb->prefix . 'miniplan';
 
         $wpdb->insert($table_name,
-                array(
+                [
 			'feedid' => '1',
                         'beginning' => current_time( 'Y-m-d' ),
                         'until' => date('Y-m-d', strtotime("+1 week")),
                         'title' => 'Demo Plan',
                         'text' => 'Alle Ministranten',
-                )
+                ]
         );
 }
 
