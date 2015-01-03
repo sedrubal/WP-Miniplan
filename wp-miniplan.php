@@ -10,7 +10,7 @@
  * License: CC BY 4.0
  */
 
-defined('ABSPATH') or die("[!] This scipt must be executed by a wordpress instance!\r\n");
+defined('ABSPATH') or die("[!] This script must be executed by a wordpress instance!\r\n");
 
 global $miniplan_db_version;
 $miniplan_db_version = '0.0.4';
@@ -24,7 +24,7 @@ require_once( 'db.php' );
 
 function miniplan_install() {
 	miniplan_install_db();
-	miniplan_add_new( 1, 'Demo Plan', 'Alle Ministranten', current_time( 'Y-m-d' ), date('Y-m-d', strtotime("+1 week")));
+	miniplan_add_new( 1, 'Demo Plan', 'Alle Ministranten', 'Max Mustermann', 'Bearbeite diesen Plan oder l&ouml;sche ihn', current_time( 'Y-m-d' ), date('Y-m-d', strtotime("+1 week")));
 }
 
 function miniplan_update_db_check() {
@@ -38,7 +38,11 @@ function miniplan_update_db_check() {
  *  Register hooks etc.
  */
 
-//GET Parameter ( ?miniplan=x )
+/**
+ * registers query variables (get, post) to wordpress
+ * @param $vars: an array containing all previous registered query vars
+ * @return array: an array containing all query vars needed by this plugin and all previous registered vars
+ */
 function add_miniplan_query_vars_filter( $vars ){
   $vars[] = "miniplan";
   $vars[] = "miniplan_admin_action";

@@ -6,6 +6,9 @@ defined('ABSPATH') or die("[!] This script must be executed by a Wordpress insta
  * the database things
  */
 
+/**
+ * creates the database for this plugin
+ */
 function miniplan_install_db() {
         global $wpdb;
         global $miniplan_db_version;
@@ -37,6 +40,8 @@ function miniplan_install_db() {
  * @param int $feed_id: the id of the current miniplan feed (int)
  * @param string $title: the title of the new miniplan
  * @param string $text: the text of the new miniplan
+ * @param string $attendance: the names for attendance for this miniplan
+ * @param string $notification: notifications for this miniplan
  * @param string $beginning: the start date for the new miniplan
  * @param string $until: the last date of the new miniplan
  */
@@ -64,6 +69,8 @@ function miniplan_add_new( $feed_id, $title, $text, $attendance, $notification, 
  * @param int $feed_id: the id of the current miniplan feed (int)
  * @param string $title: the title of the new miniplan
  * @param string $text: the text of the new miniplan
+ * @param string $attendance: the names for attendance for this miniplan
+ * @param string $notification: notifications for this miniplan
  * @param string $beginning: the start date for the new miniplan
  * @param string $until: the last date of the new miniplan
  */

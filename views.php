@@ -11,7 +11,7 @@ require_once( 'db.php' );
 /**
  * prints the miniplan things
  * @param array $atts: the Wordpress tag attributes
- * @return string: the miniplan with (admin)formulars
+ * @return string: the miniplan with (admin)forms
  */
 function print_miniplan( $atts ) {
 	global $wpdb;
@@ -117,10 +117,10 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 		<script>
 			function textAreaAdjust(o) {
 				o.style.height = "1px";
-				o.style.height = (25+o.scrollHeight)+"px";
+				o.style.height = (o.scrollHeight)+"px";
 			}
 		</script>
-		<textarea id="new_mpl" name="mpl_text" required placeholder="Miniplan" onkeyup="textAreaAdjust(this)" style="height:25em; width:90%">' . $master_mpl->text . '</textarea>
+		<textarea id="new_mpl" name="mpl_text" required placeholder="Miniplan" onkeyup="textAreaAdjust(this)" style="height:25em; width:90%;">' . $master_mpl->text . '</textarea>
 	</div>
 
 	<label class="control-label" for="notification">Benachrichtigungen:</label>
@@ -166,7 +166,7 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 
 		$miniplan_delete_form = '<form action="" method="post" class="form-horizontal"><fieldset>
 	<legend><h3>Ausgew&auml;hlten Miniplan l&ouml;schen</h3></legend>' .
-	miniplan_message('Möchtest du wirklich den Plan "' . $master_mpl->title . '" vom ' . $master_mpl->beginning . ' bis zum ' . $master_mpl->until . ' l&ouml;schen?', "question") .
+	miniplan_message('M&ouml;chtest du wirklich den Plan "' . $master_mpl->title . '" vom ' . $master_mpl->beginning . ' bis zum ' . $master_mpl->until . ' l&ouml;schen?', "question") .
 	'<div class="control-group">
 		<div class="controls">
 			<button id="submit" name="mpl_submit" class="btn btn-default delete" value="TRUE">L&ouml;schen</button>
@@ -238,7 +238,7 @@ function miniplan_date_format( $strdate , $mode="human") {
 }
 
 /**
- * Genereates a html div containing the message
+ * Generates a html div containing the message
  * @param string $message: The message to be displayed
  * @param string $state: 'success' for success, anything else for error
  * @return string: A html div, containing the message
