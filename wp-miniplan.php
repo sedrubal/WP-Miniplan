@@ -23,38 +23,14 @@ require_once( 'db.php' );
  */
 
 function miniplan_install() {
-
-        global $wpdb;
-        global $miniplan_db_version;
-
-        $table_name = $wpdb->prefix . 'miniplan';
-
-        $charset_collate = $wpdb->get_charset_collate();
-
-        $sql = "CREATE TABLE $table_name (
-                id mediumint(9) NOT NULL AUTO_INCREMENT,
-                feed_id tinyint DEFAULT '1' NOT NULL,
-		        beginning datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-		        until datetime DEFAULT '0000-00-07 00:00:00' NOT NULL,
-                title tinytext NOT NULL,
-                text text NOT NULL,
-                UNIQUE KEY id (id)
-        ) $charset_collate;";
-
-        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-        dbDelta( $sql );
-
-        add_option( 'miniplan_db_version', $miniplan_db_version );
-}
-
-function miniplan_install_data() {
+	miniplan_install_db();
 	miniplan_add_new( 1, 'Demo Plan', 'Alle Ministranten', current_time( 'Y-m-d' ), date('Y-m-d', strtotime("+1 week")));
 }
 
 function miniplan_update_db_check() {
     global $miniplan_db_version;
     if ( get_site_option( 'miniplan_db_version' ) != $miniplan_db_version ) {
-        miniplan_install();
+        miniplan_install_db();
     }
 }
 
@@ -68,6 +44,8 @@ function add_miniplan_query_vars_filter( $vars ){
   $vars[] = "miniplan_admin_action";
   $vars[] = "mpl_title";
   $vars[] = "mpl_text";
+  $vars[] = "mpl_attendance";
+  $vars[] = "mpl_notification";
   $vars[] = "mpl_beginning";
   $vars[] = "mpl_until";
   $vars[] = "mpl_submit";
@@ -77,7 +55,6 @@ add_filter( 'query_vars', 'add_miniplan_query_vars_filter' );
 
 //DB / [wp_miniplan] )
 register_activation_hook( __FILE__, 'miniplan_install' );
-register_activation_hook( __FILE__, 'miniplan_install_data' );
 add_action( 'plugins_loaded', 'miniplan_update_db_check' );
 
 //SHORTCODES ( [miniplan id="x"] )

@@ -57,8 +57,10 @@ function print_miniplan( $atts ) {
 	} else {
 		//display miniplan
         	$ret .= '<div id="miniplan" class="miniplan"><h3>' . $results[0]->title . ' - gültig vom ' . miniplan_date_format($results[0]->beginning) . ' bis zum ' . miniplan_date_format($results[0]->until) . '</h3>
-        	        <!--[if IE 6]>' . miniplan_message( 'Dieser Browser wird nicht unterstützt.' , 'error' ) . '<![endif]-->
-        	                            <pre>' . $results[0]->text . '</pre></div>';
+        	        <!--[if IE 6]>' . miniplan_message( 'Dieser Browser wird nicht unterstützt.' , 'error' ) . '<![endif]-->' .
+						((strlen($results[0]->attendance) > 0) ? '<div id="attendance"><strong><p>Bereitschaft: ' . $results[0]->attendance . '</strong></p></div>' : '') .
+						'<pre id="miniplan_content">' . $results[0]->text . '</pre>' .
+						((strlen($results[0]->notification) > 0) ? ('</br>' . miniplan_message($results[0]->notification, 'notification')) : '') . '</div>';
 		$ret .= print_miniplan_admin_form( intval($atts["id"]) , $results[0]);
 	}
 	return $ret;
@@ -77,12 +79,16 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 		$master_mpl = new stdClass();
 		if ($current_mpl === null || get_query_var( "miniplan_admin_action", "" ) === "upload") {
 			$master_mpl->title = "Miniplan";
-			$master_mpl->text = "Alle Ministranten";
+			$master_mpl->text = '';
+			$master_mpl->attendance = '';
+			$master_mpl->notification = '';
 			$master_mpl->beginning = miniplan_date_format(current_time( 'd.m.y' ));
 			$master_mpl->until = miniplan_date_format(date('d.m.y', strtotime('+1 week')));
 		} else {
 			$master_mpl->title = ((strlen($current_mpl->title) === 0) ? 'Miniplan' : $current_mpl->title);
-			$master_mpl->text = ((strlen($current_mpl->text) === 0 ? "Alle Ministranten" : $current_mpl->text));
+			$master_mpl->text = ((strlen($current_mpl->text) === 0 ? '' : $current_mpl->text));
+			$master_mpl->attendance = ((strlen($current_mpl->attendance) === 0 ? '' : $current_mpl->attendance));
+			$master_mpl->notification = ((strlen($current_mpl->notification) === 0 ? '' : $current_mpl->notification));
 			$master_mpl->beginning = ((strlen($current_mpl->beginning) === 0 ? miniplan_date_format(current_time( 'd.m.y' )) : miniplan_date_format($current_mpl->beginning)));
 			$master_mpl->until = ((strlen($current_mpl->until) === 0 ? miniplan_date_format(strtotime('+1 week')) : miniplan_date_format($current_mpl->until)));
 			$master_mpl->id = $current_mpl->id;
@@ -94,43 +100,61 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 		//TODO update second datepicker (+1 week) when fist value changed
 		$miniplan_edit_form = '<form action="" method="post" class="form-horizontal"><fieldset>
 	<legend><h3>' . ((get_query_var( "miniplan_admin_action", "upload" ) === 'upload') ? 'Einen neuen Miniplan hochladen' : 'Den ausgew&auml;hlten Miniplan bearbeiten') . '</h3></legend>
-	<label class="control-label" for="title">Titel</label>
+	<label class="control-label" for="title">Titel:</label>
 	<div class="controls">
-		<input id="title" name="mpl_title" placeholder="Miniplan" value="' . $master_mpl->title . '" class="input-xlarge" required type="text">
+		<input id="title" name="mpl_title" placeholder="Miniplan" value="' . $master_mpl->title . '" class="input-xlarge" required type="text" style="width:90%;">
 		<p class="help-block">Ein einfacher kurzer Name für den Miniplan (z.B. "Miniplan").</p>
 	</div>
 
-	<label class="control-label" for="new_mpl">Miniplan</label>
+	<label class="control-label" for="attendance">Bereitschaft:</label>
 	<div class="controls">
-		<textarea id="new_mpl" name="mpl_text" required>' . $master_mpl->text . '</textarea>
+		<input id="attendance" name="mpl_attendance" placeholder="Bereitschaft" value="' . $master_mpl->attendance . '" class="input-xlarge" type="text" style="width:90%;">
+		<p class="help-block">Namen der Ministranten, die zur Bereitschaft aufgestellt sind.</p>
 	</div>
 
-	<label class="control-label" for="beginning-datepicker">Beginn</label>
+	<label class="control-label" for="new_mpl">Miniplan:</label>
+	<div class="controls">
+		<script>
+			function textAreaAdjust(o) {
+				o.style.height = "1px";
+				o.style.height = (25+o.scrollHeight)+"px";
+			}
+		</script>
+		<textarea id="new_mpl" name="mpl_text" required placeholder="Miniplan" onkeyup="textAreaAdjust(this)" style="height:25em; width:90%">' . $master_mpl->text . '</textarea>
+	</div>
+
+	<label class="control-label" for="notification">Benachrichtigungen:</label>
+	<div class="controls">
+		<input id="notification" name="mpl_notification" placeholder="Benachrichtigungen" value="' . $master_mpl->notification . '" class="input-xlarge" type="text" style="width:90%;">
+		<p class="help-block">Falls Miniproben o.&Auml;. anstehen, kann man das hier eintragen.</p>
+	</div>
+
+	<label class="control-label" for="beginning-datepicker">Beginn:</label>
 	<div class="controls">
 		<script type="text/javascript">
-			document.write(\' <input type="text" placeholder="Beginn (d.m.y)"  id="beginning-datepicker" name="mpl_beginning" class="input-xlarge" required value="' . $master_mpl->beginning . '"> \');
+			document.write(\' <input type="text" placeholder="Beginn (dd.mm.y)"  id="beginning-datepicker" name="mpl_beginning" class="input-xlarge" required value="' . $master_mpl->beginning . '" style="width:90%;"> \');
 
 			jQuery(document).ready(function() {
 				jQuery("#beginning-datepicker").datepicker({
-					dateFormat : "d.m.y"
+					dateFormat : "dd.mm.y"
 				});
 			});
 	        </script>
-		<noscript><input type="datetime" placeholder="Beginn (d.m.y)" id="beginning-datepicker" name="mpl_beginning" class="input-xlarge" required value="' . $master_mpl->beginning . '"/></noscript>
+		<noscript><input type="datetime" placeholder="Beginn (dd.mm.y)" id="beginning-datepicker" name="mpl_beginning" class="input-xlarge" required value="' . $master_mpl->beginning . '"/ style="width:90%;"></noscript>
 	</div>
 
-	<label class="control-label" for="until-datepicker">Bis</label>
+	<label class="control-label" for="until-datepicker">Bis:</label>
 	<div class="controls">
 		<script type="text/javascript">
-			document.write(\' <input type="text" placeholder="bis (d.m.y)"  id="until-datepicker" name="mpl_until" class="input-xlarge" required value="' . $master_mpl->until . '"> \');
+			document.write(\' <input type="text" placeholder="bis (dd.mm.y)"  id="until-datepicker" name="mpl_until" class="input-xlarge" required value="' . $master_mpl->until . '" style="width:90%;"> \');
 
 			jQuery(document).ready(function() {
 				jQuery("#until-datepicker").datepicker({
-					dateFormat : "d.m.y"
+					dateFormat : "dd.mm.y"
 				});
 			});
 	        </script>
-		<noscript><input type="datetime" placeholder="bis (d.m.y)"  id="until-datepicker" name="mpl_until" class="input-xlarge" required value="' . $master_mpl->until . '"/></noscript>
+		<noscript><input type="datetime" placeholder="bis (dd.mm.y)"  id="until-datepicker" name="mpl_until" class="input-xlarge" required value="' . $master_mpl->until . '"/ style="width:90%;"></noscript>
 	</div>
 
 	<div class="control-group">
@@ -163,16 +187,16 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 		switch (get_query_var( "miniplan_admin_action", "" )) {
 			case "upload":
 				if ($submitted) {
-					miniplan_add_new($feed_id, get_query_var( "mpl_title", "" ), get_query_var( "mpl_text", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
-					$content .= miniplan_message("Der Miniplan wurde erfolgreich hochgeladen.", "success") . $proceed_btn;
+					miniplan_add_new($feed_id, get_query_var( "mpl_title", "" ), get_query_var( "mpl_text", "" ), get_query_var( "mpl_attendance", "" ), get_query_var( "mpl_notification", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
+					$content .= miniplan_message("Der Miniplan wurde erfolgreich hochgeladen.", "success") . $proceed_btn . '</div>';
 				} else {
 					$content .= $miniplan_edit_form . $cancel_btn . '</div>';
 				}
 				break;
 			case "edit":
 				if ($submitted) {
-					miniplan_edit_existing($master_mpl->id, $feed_id, get_query_var( "mpl_title", "" ), get_query_var( "mpl_text", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
-					$content .= miniplan_message("Der Miniplan wurde erfolgreich bearbeitet.", "success") . $proceed_btn;
+					miniplan_edit_existing($master_mpl->id, $feed_id, get_query_var( "mpl_title", "" ), get_query_var( "mpl_text", "" ), get_query_var( "mpl_attendance", "" ), get_query_var( "mpl_notification", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
+					$content .= miniplan_message("Der Miniplan wurde erfolgreich bearbeitet.", "success") . $proceed_btn . '</div>';
 				} else {
 					$content .= $miniplan_edit_form . $cancel_btn . '</div>';
 				}
@@ -180,7 +204,7 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 			case "delete":
 				if ($submitted) {
 					miniplan_delete_existing($master_mpl->id);
-					$content .= miniplan_message("Der Miniplan wurde erfolgreich gel&ouml;scht.", "success") . $proceed_btn;
+					$content .= miniplan_message("Der Miniplan wurde erfolgreich gel&ouml;scht.", "success") . $proceed_btn . '</div>';
 				} else {
 					$content .= $miniplan_delete_form . $cancel_btn . '</div>';
 				}

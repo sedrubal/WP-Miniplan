@@ -6,6 +6,32 @@ defined('ABSPATH') or die("[!] This script must be executed by a Wordpress insta
  * the database things
  */
 
+function miniplan_install_db() {
+        global $wpdb;
+        global $miniplan_db_version;
+
+        $table_name = $wpdb->prefix . 'miniplan';
+
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE $table_name (
+                id mediumint(9) NOT NULL AUTO_INCREMENT,
+                feed_id tinyint DEFAULT '1' NOT NULL,
+                        beginning datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+                        until datetime DEFAULT '0000-00-07 00:00:00' NOT NULL,
+                title tinytext NOT NULL,
+                attendance tinytext DEFAULT '',
+                notification tinytext DEFAULT '',
+                text text NOT NULL,
+                UNIQUE KEY id (id)
+        ) $charset_collate;";
+
+        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+        dbDelta( $sql );
+
+        add_option( 'miniplan_db_version', $miniplan_db_version );
+}
+
 /**
  * Adds a new miniplan to the database
  * @param int $feed_id: the id of the current miniplan feed (int)
@@ -14,7 +40,7 @@ defined('ABSPATH') or die("[!] This script must be executed by a Wordpress insta
  * @param string $beginning: the start date for the new miniplan
  * @param string $until: the last date of the new miniplan
  */
-function miniplan_add_new( $feed_id, $title, $text, $beginning, $until ) {
+function miniplan_add_new( $feed_id, $title, $text, $attendance, $notification, $beginning, $until ) {
 	global $wpdb;
         $table_name = $wpdb->prefix . 'miniplan';
 	$wpdb->insert(
@@ -24,9 +50,11 @@ function miniplan_add_new( $feed_id, $title, $text, $beginning, $until ) {
 				'beginning' 	=> miniplan_date_format($beginning, "sql"),
 				'until' 	=> miniplan_date_format($until, "sql"),
 				'title' 	=> $title,
-				'text' 		=> $text
-            ],
-			['%d' , '%s', '%s', '%s', '%s']
+				'text' 		=> $text,
+				'attendance' 	=> $attendance,
+				'notification' 	=> $notification
+			],
+			['%d' , '%s', '%s', '%s', '%s', '%s', '%s']
 	);
 }
 
@@ -39,7 +67,7 @@ function miniplan_add_new( $feed_id, $title, $text, $beginning, $until ) {
  * @param string $beginning: the start date for the new miniplan
  * @param string $until: the last date of the new miniplan
  */
-function miniplan_edit_existing($mpl_id, $feed_id, $title, $text, $beginning, $until) {
+function miniplan_edit_existing($mpl_id, $feed_id, $title, $text, $attendance, $notification, $beginning, $until) {
 
 	global $wpdb;
         $table_name = $wpdb->prefix . 'miniplan';
@@ -50,10 +78,12 @@ function miniplan_edit_existing($mpl_id, $feed_id, $title, $text, $beginning, $u
 				'beginning' 	=> miniplan_date_format($beginning, "sql"),
 				'until' 	=> miniplan_date_format($until, "sql"),
 				'title' 	=> $title,
-				'text' 		=> $text
-            		],
+				'text' 		=> $text,
+				'attendance' 	=> $attendance,
+				'notification' 	=> $notification
+			],
 			['id' => $mpl_id ],
-			['%d' , '%s', '%s', '%s', '%s'],
+			['%d' , '%s', '%s', '%s', '%s', '%s', '%s']
 			['%d']
 	);
 }
