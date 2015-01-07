@@ -109,3 +109,16 @@ function miniplan_delete_existing($mpl_id) {
 			['%d']
 	);
 }
+
+/**
+ * drops the database for this plugin
+ */
+function miniplan_drop_db() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'miniplan';
+
+	$wpdb->query( "DROP TABLE IF EXISTS " . $table_name );
+
+        delete_option( 'miniplan_db_version', $miniplan_db_version );
+}
