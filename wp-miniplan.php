@@ -28,7 +28,7 @@ $miniplan_default_privileged_roles = array('administrator', 'editor', 'author');
 function miniplan_install() {
 	miniplan_install_db();
 	miniplan_add_new( 1, 'Demo Plan', 'Alle Ministranten', 'Max Mustermann', 'Bearbeite diesen Plan oder l&ouml;sche ihn', current_time( 'Y-m-d' ), date('Y-m-d', strtotime("+1 week")));
-	set_option('miniplan_privileged_roles', $miniplan_default_privileged_roles);
+	add_option('miniplan_privileged_roles', $miniplan_default_privileged_roles);
 }
 
 function miniplan_update_db_check() {

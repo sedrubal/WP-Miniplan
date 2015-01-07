@@ -334,8 +334,12 @@ function miniplan_date_format( $strdate , $mode="human") {
 	if ($mode === "human") {
 		return date('d.m.y', strtotime($strdate));
 	} else {
-		$pts = explode(".", $strdate, 3);
-		return date('Y-m-d', strtotime($pts[2] . "-" . $pts[1] . "-" . $pts[0]));
+		if (strpos('.', $strdate)) {
+			$pts = explode(".", $strdate, 3);
+			return date('Y-m-d', strtotime($pts[2] . "-" . $pts[1] . "-" . $pts[0]));
+		} else if (strpos('-', $strdate)) {
+			return date('Y-m-d', strdate);
+		} else { return ""; }
 	}
 }
 
