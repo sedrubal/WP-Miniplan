@@ -34,18 +34,19 @@ function print_miniplan( $atts ) {
 	</form>";
 	//query selected miniplan from db
     $results = null;
-	if ($date === "latest") {
+	if ($date === "latest" || $date === "-1") {
 		//get latest date until today
-		$mostRecent= 0;
-		$now = time();
+		$mostRecent = null;
+		$now = new DateTime('Now');
 		foreach($dates as $date){
-			$curDate = strtotime($date->beginning);
+			if (!$date->beginning instanceof DateTime) { $date->beginning = new DateTime($date->beginning); }
+			$curDate = $date->beginning;
 			if ($curDate > $mostRecent && $curDate < $now) {
 				$mostRecent = $curDate;
 			}
 		}
 
-		$results = $wpdb->get_results( 'SELECT * FROM `' . $table_name . '` WHERE feed_id = \'' . intval($atts["id"]) . '\' AND DATE_FORMAT(beginning, "%Y-%m-%d") = DATE_FORMAT(\'' . date('Y-m-d', $mostRecent) . '\', "%Y-%m-%d") ORDER BY beginning DESC LIMIT 1', OBJECT );
+		$results = $wpdb->get_results( 'SELECT * FROM `' . $table_name . '` WHERE feed_id = \'' . intval($atts["id"]) . '\' AND DATE_FORMAT(beginning, "%Y-%m-%d") = DATE_FORMAT(\'' . miniplan_date_format($mostRecent, "sql") . '\', "%Y-%m-%d") ORDER BY beginning DESC LIMIT 1', OBJECT );
 	} else if (is_numeric($date)) {
 		$results = $wpdb->get_results( 'SELECT * FROM `' . $table_name . '` WHERE id = \'' . intval($date) . '\' ORDER BY beginning LIMIT 1', OBJECT );
 	}
@@ -56,7 +57,7 @@ function print_miniplan( $atts ) {
 		$ret .= print_miniplan_admin_form( intval($atts["id"]), null );
 	} else {
 		//display miniplan
-        	$ret .= '<h3>' . $results[0]->title . ' - gültig vom ' . miniplan_date_format($results[0]->beginning) . ' bis zum ' . miniplan_date_format($results[0]->until) . '</h3>
+        	$ret .= '<h3>' . $results[0]->title . ' - g&uuml;ltig vom ' . miniplan_date_format($results[0]->beginning) . ' bis zum ' . miniplan_date_format($results[0]->until) . '</h3>
         	        <!--[if IE 6]>' . miniplan_message( 'Dieser Browser wird nicht unterstützt.' , 'error' ) . '<![endif]-->' .
 						((strlen($results[0]->attendance) > 0) ? '<div id="attendance"><strong><p>Bereitschaft: ' . $results[0]->attendance . '</strong></p></div>' : '') .
 						'<pre id="miniplan_content">' . $results[0]->text . '</pre>' .
@@ -77,23 +78,15 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 		return "";
 	} else {
 		$master_mpl = new stdClass();
-		if ($current_mpl === null || get_query_var( "miniplan_admin_action", "" ) === "upload") {
-			$master_mpl->title = "Miniplan";
-			$master_mpl->text = '';
-			$master_mpl->attendance = '';
-			$master_mpl->notification = '';
-			$master_mpl->beginning = miniplan_date_format(current_time( 'd.m.y' ));
-			$master_mpl->until = miniplan_date_format(date('d.m.y', strtotime('+1 week')));
-			$master_mpl->id = -1;
-		} else {
-			$master_mpl->title = ((strlen($current_mpl->title) === 0) ? 'Miniplan' : $current_mpl->title);
-			$master_mpl->text = ((strlen($current_mpl->text) === 0 ? '' : $current_mpl->text));
-			$master_mpl->attendance = ((strlen($current_mpl->attendance) === 0 ? '' : $current_mpl->attendance));
-			$master_mpl->notification = ((strlen($current_mpl->notification) === 0 ? '' : $current_mpl->notification));
-			$master_mpl->beginning = ((strlen($current_mpl->beginning) === 0 ? miniplan_date_format(current_time( 'd.m.y' )) : miniplan_date_format($current_mpl->beginning)));
-			$master_mpl->until = ((strlen($current_mpl->until) === 0 ? miniplan_date_format(strtotime('+1 week')) : miniplan_date_format($current_mpl->until)));
-			$master_mpl->id = $current_mpl->id;
-		}
+		$cn = ($current_mpl === null || get_query_var( "miniplan_admin_action", "" ) === "upload");
+		$master_mpl->title        = (($cn || strlen($current_mpl->title)        === 0) ? ('Miniplan')         : ($current_mpl->title));
+		$master_mpl->text         = (($cn || strlen($current_mpl->text)         === 0) ? ('')                 : ($current_mpl->text));
+		$master_mpl->attendance   = (($cn || strlen($current_mpl->attendance)   === 0) ? ('')                 : ($current_mpl->attendance));
+		$master_mpl->notification = (($cn || strlen($current_mpl->notification) === 0) ? ('')                 : ($current_mpl->notification));
+		$master_mpl->beginning    = (($cn || (!isset($current_mpl->beginning) || strlen($current_mpl->beginning->format('d.m.y')) === 0)) ? (new DateTime('Now')) : ($current_mpl->beginning));
+		$master_mpl->until        = (($cn || (!isset($current_mpl->until) || strlen($current_mpl->until->format('d.m.y')) === 0)) ? (date_add(new DateTime($master_mpl->beginning->format('y-m-d')), DateInterval::createFromDateString('7 days'))) : ($current_mpl->until));
+		$master_mpl->id           = (($cn)                                             ? (-1)                 : ($current_mpl->id));
+
 		$content = '<div class="miniplan_admin_panel" id="miniplan_admin_panel"><h3>Miniplan Admin-Panel</h3>';
 		/**
 		 * VARIABLES--------------------------------------------------------------------
@@ -133,7 +126,7 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 	<label class="control-label" for="beginning-datepicker">Beginn:</label>
 	<div class="controls">
 		<script type="text/javascript">
-			document.write(\' <input type="text" placeholder="Beginn (dd.mm.y)"  id="beginning-datepicker" name="mpl_beginning" class="input-xlarge" required value="' . $master_mpl->beginning . '" style="width:90%;"> \');
+			document.write(\' <input type="text" placeholder="Beginn (dd.mm.y)"  id="beginning-datepicker" name="mpl_beginning" class="input-xlarge" required value="' . miniplan_date_format($master_mpl->beginning) . '" style="width:90%;"> \');
 
 			jQuery(document).ready(function() {
 				jQuery("#beginning-datepicker").datepicker({
@@ -141,13 +134,13 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 				});
 			});
 	        </script>
-		<noscript><input type="datetime" placeholder="Beginn (dd.mm.y)" id="beginning-datepicker" name="mpl_beginning" class="input-xlarge" required value="' . $master_mpl->beginning . '"/ style="width:90%;"></noscript>
+		<noscript><input type="datetime" placeholder="Beginn (dd.mm.y)" id="beginning-datepicker" name="mpl_beginning" class="input-xlarge" required value="' . miniplan_date_format($master_mpl->beginning) . '"/ style="width:90%;"></noscript>
 	</div>
 
 	<label class="control-label" for="until-datepicker">Bis:</label>
 	<div class="controls">
 		<script type="text/javascript">
-			document.write(\' <input type="text" placeholder="bis (dd.mm.y)"  id="until-datepicker" name="mpl_until" class="input-xlarge" required value="' . $master_mpl->until . '" style="width:90%;"> \');
+			document.write(\' <input type="text" placeholder="bis (dd.mm.y)"  id="until-datepicker" name="mpl_until" class="input-xlarge" required value="' . miniplan_date_format($master_mpl->until) . '" style="width:90%;"> \');
 
 			jQuery(document).ready(function() {
 				jQuery("#until-datepicker").datepicker({
@@ -155,7 +148,7 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 				});
 			});
 	        </script>
-		<noscript><input type="datetime" placeholder="bis (dd.mm.y)"  id="until-datepicker" name="mpl_until" class="input-xlarge" required value="' . $master_mpl->until . '"/ style="width:90%;"></noscript>
+		<noscript><input type="datetime" placeholder="bis (dd.mm.y)"  id="until-datepicker" name="mpl_until" class="input-xlarge" required value="' . miniplan_date_format($master_mpl->until) . '"/ style="width:90%;"></noscript>
 	</div>
 
 	<div class="control-group">
@@ -167,7 +160,7 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 
 		$miniplan_delete_form = '<form action="' . $_SERVER['REQUEST_URI'] . '#miniplan_admin_panel" method="post" class="form-horizontal"><fieldset>
 	<legend><h3>Ausgew&auml;hlten Miniplan l&ouml;schen</h3></legend>' .
-	miniplan_message('M&ouml;chtest du wirklich den Plan "' . $master_mpl->title . '" vom ' . $master_mpl->beginning . ' bis zum ' . $master_mpl->until . ' l&ouml;schen?', "question") .
+	miniplan_message('M&ouml;chtest du wirklich den Plan "' . $master_mpl->title . '" vom ' . miniplan_date_format($master_mpl->beginning) . ' bis zum ' . miniplan_date_format($master_mpl->until) . ' l&ouml;schen?', "question") .
 	'<div class="control-group">
 		<div class="controls">
 			<button id="submit" name="mpl_submit" class="btn btn-default delete" value="TRUE">L&ouml;schen</button>
@@ -233,30 +226,20 @@ function miniplan_menu_pages() {
 	$capability = 'manage_options';
 	$menu_slug = 'miniplan-admin-settings';
 	$function = 'miniplan_admin_settings';
-	//add_menu_page($page_title, $menu_title, $capability, $menu_slug, $function);
 	add_options_page($page_title, $menu_title, $capability, $menu_slug, $function);
-
-	// Add submenu page with same slug as parent to ensure no duplicates
-	//$sub_menu_title = 'Einstellungen';
-	//add_submenu_page($menu_slug, $page_title, $sub_menu_title, $capability, $menu_slug, $function);
-
-	/*// Now add the submenu page for Help
-	$submenu_page_title = 'Miniplan Hilfe';
-	$submenu_title = 'Hilfe';
-	$submenu_slug = 'miniplan-admin-help';
-	$submenu_function = 'miniplan_admin_help';
-	add_submenu_page($menu_slug, $submenu_page_title, $submenu_title, $capability, $submenu_slug, $submenu_function);*/
 }
 
 /**
  * creates the settings tab
  */
 function miniplan_admin_settings() {
+	global $wp_roles;
+	global $miniplan_default_privileged_roles;
+
 	if (!current_user_can('manage_options')) {
 		wp_die('You do not have sufficient permissions to access this page.');
 	}
 
-	global $wp_roles;
 	$privileged_roles = array();
 	$changes = false;
 	if (isset($_POST['reset'])) {
@@ -316,30 +299,24 @@ function miniplan_admin_settings() {
 
 }
 
-/*function miniplan_admin_help() {
-	if (!current_user_can('manage_options')) {
-		wp_die('You do not have sufficient permissions to access this page.');
-	}
-
-	echo '<p>hello world</p>';
-}*/
-
 /**
- * formats a date from a string to a human well readable string or a human well readable date to a sql readable date
- * @param string $strdate: the date as string
- * @param string $mode: 'human' or 'sql'
+ * formats a date from a string or from DateTime to a human well readable string or a human well readable date to a sql readable date
+ * And it konverts your string to a DateTime.
+ * @param DateTime|string $strdate: the date as string * @param string $mode: 'human' or 'sql'
  * @return bool|string: the new string containing the date or false, if an error occurred
  */
-function miniplan_date_format( $strdate , $mode="human") {
+function miniplan_date_format( &$strdate , $mode="human") {
+       //in date
+	if ($strdate instanceof string && strpos('.', $strdate)) {
+	       $pts = explode(".", $strdate);
+	       $strdate = date('Y-m-d', strtotime($pts[2] . "-" . $pts[1] . "-" . $pts[0]));
+	}
+	if (!$strdate instanceof DateTime) { $strdate = new DateTime($strdate); }
+	//in string
 	if ($mode === "human") {
-		return date('d.m.y', strtotime($strdate));
+		return $strdate->format('d.m.y');
 	} else {
-		if (strpos('.', $strdate)) {
-			$pts = explode(".", $strdate, 3);
-			return date('Y-m-d', strtotime($pts[2] . "-" . $pts[1] . "-" . $pts[0]));
-		} else if (strpos('-', $strdate)) {
-			return date('Y-m-d', strdate);
-		} else { return ""; }
+		return $strdate->format('Y-m-d');
 	}
 }
 

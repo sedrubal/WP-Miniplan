@@ -90,7 +90,7 @@ function miniplan_edit_existing($mpl_id, $feed_id, $title, $text, $attendance, $
 				'notification' 	=> $notification
 			],
 			['id' => $mpl_id ],
-			['%d' , '%s', '%s', '%s', '%s', '%s', '%s']
+			['%d' , '%s', '%s', '%s', '%s', '%s', '%s'],
 			['%d']
 	);
 }
