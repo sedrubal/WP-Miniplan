@@ -1,6 +1,8 @@
 <?php
 
 defined('ABSPATH') or die("[!] This script must be executed by a Wordpress instance!\r\n");
+//in_array(strtolower(array_shift(wp_get_current_user()->roles)), get_option('miniplan_privileged_roles')) or wp_die('You are not privileged to do this!');
+
 
 /**
  * the database things
@@ -10,6 +12,7 @@ defined('ABSPATH') or die("[!] This script must be executed by a Wordpress insta
  * creates the database for this plugin
  */
 function miniplan_install_db() {
+
         global $wpdb;
         global $miniplan_db_version;
 
@@ -22,7 +25,6 @@ function miniplan_install_db() {
                 feed_id tinyint DEFAULT '1' NOT NULL,
                         beginning datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
                         until datetime DEFAULT '0000-00-07 00:00:00' NOT NULL,
-                title tinytext NOT NULL,
                 attendance tinytext DEFAULT '',
                 notification tinytext DEFAULT '',
                 text text NOT NULL,
@@ -38,14 +40,13 @@ function miniplan_install_db() {
 /**
  * Adds a new miniplan to the database
  * @param int $feed_id: the id of the current miniplan feed (int)
- * @param string $title: the title of the new miniplan
  * @param string $text: the text of the new miniplan
  * @param string $attendance: the names for attendance for this miniplan
  * @param string $notification: notifications for this miniplan
- * @param string $beginning: the start date for the new miniplan
- * @param string $until: the last date of the new miniplan
+ * @param DateTime $beginning: the start date for the new miniplan
+ * @param DateTime $until: the last date of the new miniplan
  */
-function miniplan_add_new( $feed_id, $title, $text, $attendance, $notification, $beginning, $until ) {
+function miniplan_add_new( $feed_id, $text, $attendance, $notification, $beginning, $until ) {
 	global $wpdb;
         $table_name = $wpdb->prefix . 'miniplan';
 	$wpdb->insert(
@@ -54,12 +55,11 @@ function miniplan_add_new( $feed_id, $title, $text, $attendance, $notification, 
 				'feed_id' 	=> $feed_id,
 				'beginning' 	=> miniplan_date_format($beginning, "sql"),
 				'until' 	=> miniplan_date_format($until, "sql"),
-				'title' 	=> $title,
 				'text' 		=> $text,
 				'attendance' 	=> $attendance,
 				'notification' 	=> $notification
 			],
-			['%d' , '%s', '%s', '%s', '%s', '%s', '%s']
+			['%d', '%s', '%s', '%s', '%s', '%s']
 	);
 }
 
@@ -67,14 +67,13 @@ function miniplan_add_new( $feed_id, $title, $text, $attendance, $notification, 
  * Edits an existing miniplan in the database
  * @param int $mpl_id: the id of the miniplan
  * @param int $feed_id: the id of the current miniplan feed (int)
- * @param string $title: the title of the new miniplan
  * @param string $text: the text of the new miniplan
  * @param string $attendance: the names for attendance for this miniplan
  * @param string $notification: notifications for this miniplan
- * @param string $beginning: the start date for the new miniplan
- * @param string $until: the last date of the new miniplan
+ * @param DateTime $beginning: the start date for the new miniplan
+ * @param DateTime $until: the last date of the new miniplan
  */
-function miniplan_edit_existing($mpl_id, $feed_id, $title, $text, $attendance, $notification, $beginning, $until) {
+function miniplan_edit_existing($mpl_id, $feed_id, $text, $attendance, $notification, $beginning, $until) {
 
 	global $wpdb;
         $table_name = $wpdb->prefix . 'miniplan';
@@ -84,13 +83,12 @@ function miniplan_edit_existing($mpl_id, $feed_id, $title, $text, $attendance, $
 				'feed_id' 	=> $feed_id,
 				'beginning' 	=> miniplan_date_format($beginning, "sql"),
 				'until' 	=> miniplan_date_format($until, "sql"),
-				'title' 	=> $title,
 				'text' 		=> $text,
 				'attendance' 	=> $attendance,
 				'notification' 	=> $notification
 			],
 			['id' => $mpl_id ],
-			['%d' , '%s', '%s', '%s', '%s', '%s', '%s'],
+			['%d', '%s', '%s', '%s', '%s', '%s']
 			['%d']
 	);
 }
@@ -114,6 +112,7 @@ function miniplan_delete_existing($mpl_id) {
  * drops the database for this plugin
  */
 function miniplan_drop_db() {
+
         global $wpdb;
 
         $table_name = $wpdb->prefix . 'miniplan';

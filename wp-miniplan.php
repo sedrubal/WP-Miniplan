@@ -15,21 +15,20 @@ defined('ABSPATH') or die("[!] This script must be executed by a wordpress insta
 global $miniplan_db_version;
 $miniplan_db_version = '0.0.4';
 
-require_once( 'views.php' );
-require_once( 'db.php' );
-
 //default privileged roles for editing miniplans
 $miniplan_default_privileged_roles = array('administrator', 'editor', 'author');
+
+require_once( 'views.php' );
+require_once( 'db.php' );
 
 /**
  * install...
  */
 
 function miniplan_install() {
-	global $miniplan_default_privileged_roles;
 	miniplan_install_db();
-	miniplan_add_new( 1, 'Demo Plan', 'Alle Ministranten', 'Max Mustermann', 'Bearbeite diesen Plan oder l&ouml;sche ihn',
-			  miniplan_date_format(new DateTime('Now'), "sql"), miniplan_date_format(date_add(new DateTime('Now'), DateInterval::createFromDateString('7 days')), "sql"));
+	miniplan_add_new( 1, 'Alle Ministranten', 'Max Mustermann', 'Bearbeite diesen Plan oder l&ouml;sche ihn', DateTime::createFromFormat('dd.mm.Y', date('dd.mm.Y')), DateTime::createFromFormat('dd.mm.Y', date('dd.mm.Y'))->add(date_interval_create_from_date_string('6 days')));
+	global $miniplan_default_privileged_roles;
 	add_option('miniplan_privileged_roles', $miniplan_default_privileged_roles);
 }
 
@@ -60,7 +59,6 @@ function miniplan_uninstall() {
 function add_miniplan_query_vars_filter( $vars ){
   $vars[] = "miniplan";
   $vars[] = "miniplan_admin_action";
-  $vars[] = "mpl_title";
   $vars[] = "mpl_text";
   $vars[] = "mpl_attendance";
   $vars[] = "mpl_notification";
@@ -82,9 +80,10 @@ add_shortcode( 'miniplan', 'print_miniplan' );
 // Register style sheet and scripts for datepicker.
 // TODO: remove google spying
 function register_datepicker() {
-/**	wp_enqueue_script('jquery-min', plugins_url('js', __FILE__) . '/jquery.min.js');
-	wp_enqueue_style('jquery-ui-min', plugins_url('css', __FILE__) . '/jquery-ui.min.css');
-	wp_enqueue_script('jquery-ui-min', plugins_url('js', __FILE__) . '/jquery-ui.min.js');**/
+/**	wp_enqueue_script('jquery-min', plugins_url('/js/jquery.min.js',  __FILE__ ));
+	wp_enqueue_script('jquery-ui-min', plugins_url('/js/jquery-ui.min.js',  __FILE__ ));
+	wp_enqueue_style('jquery-ui-min', plugins_url('/css/jquery-ui.min.css',  __FILE__ ));
+**/
 
 	wp_enqueue_script('jquery-ui-datepicker');
 	global $wp_scripts;
@@ -103,7 +102,7 @@ add_action('admin_menu', 'miniplan_menu_pages');
  * @param array $links: some links (wordpress foo)
  */
 function miniplan_settings_link($links) {
-        $settings_link = '<a href="' . get_bloginfo('wpurl') . '/wp-admin/options-general.php?page=miniplan-admin-settings">Einstellungen</a>';
+        $settings_link = '<a href="' . get_bloginfo('wpurl') . '/wp-admin/admin.php?page=miniplan-admin-settings">Einstellungen</a>';
 	array_unshift($links, $settings_link);
 	return $links;
 }
