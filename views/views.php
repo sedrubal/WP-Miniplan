@@ -1,71 +1,9 @@
 <?php
-
-defined('ABSPATH') or die("[!] This script must be executed by a Wordpress instance!\r\n");
-
 /**
  * the user 'interface' and database things
  */
 
-require_once( 'db.php' );
-
-/**
- * prints the miniplan things
- * @param array $atts: the Wordpress tag attributes
- * @return string: the miniplan with (admin)forms
- */
-function print_miniplan( $atts ) {
-	global $wpdb;
-	$table_name = $wpdb->prefix . 'miniplan';
-
-	$req_mpl = get_query_var( "miniplan", "latest" ); //$requested miniplan: it should be the req. mpl id, or "latest" for the latest mpl, or "-1" to show tha latest, but handle this seperately, when editing
-	if ( !is_numeric($req_mpl)) { $req_mpl = "latest"; }
-
-	$mpl_dates = $wpdb->get_results( 'SELECT id,beginning,until FROM `' . $table_name . '` WHERE feed_id = \'' . intval($atts["id"]) . '\' ORDER BY beginning DESC', OBJECT ); //get available plans from db (for dropdown)
-	//create dropdown
-	$ret = '<div id="miniplan" class="miniplan"><form action="' . $_SERVER['REQUEST_URI'] . '#miniplan" method="get">
-		Datum: <select onchange="this.form.submit()" name="miniplan" required>
-			<option value="latest" ' . (($req_mpl === 'latest' || $req_mpl === '-1') ? ' selected' : '') . ' >aktueller Plan</option>';
-	// options from db
-	foreach ($mpl_dates as $d) {
-		$ret .= "<option value='" . $d->id . "'" . (($req_mpl === $d->id) ? " selected>" : ">") . miniplan_date_format($d->beginning) . " - "  . miniplan_date_format($d->until) . "</option>";
-	}
-	$ret .="</select>
-		<noscript><button type='submit'>aktualisieren</button></noscript>
-	</form>";
-
-	//query selected miniplan from db
-	$results = null;
-	if ($req_mpl === "latest" || $req_mpl === "-1") {
-		//get latest date until today
-		$mostRecent= null;
-		$now = new DateTime('Now');
-		foreach($mpl_dates as $date){
-			$curDate = new DateTime($date->beginning);
-			if ($curDate > $mostRecent && $curDate < $now) {
-				$mostRecent = $curDate;
-			}
-		}
-
-		$results = $wpdb->get_results( 'SELECT * FROM `' . $table_name . '` WHERE feed_id = \'' . intval($atts["id"]) . '\' AND DATE_FORMAT(beginning, "%Y-%m-%d") = DATE_FORMAT(\'' . miniplan_date_format($mostRecent, 'sql') . '\', "%Y-%m-%d") ORDER BY beginning DESC LIMIT 1', OBJECT );
-	} else if (is_numeric($req_mpl)) {
-		$results = $wpdb->get_results( 'SELECT * FROM `' . $table_name . '` WHERE id = \'' . intval($req_mpl) . '\' ORDER BY beginning LIMIT 1', OBJECT );
-	}
-	if ($results === null || $results == "" || empty($results)) {
-		if (WP_DEBUG === true) { error_log("Something went wrong, while fetching the miniplan!"); }
-		apply_filters('debug', "Something went wrong, while fetching the miniplan!");
-		$ret .= miniplan_message("Der Miniplan ist entweder nicht verfügbar oder kann aufgrund eines internen Fehlers nicht angezeigt werden.", "error") . '</div>';
-		$ret .= print_miniplan_admin_form( intval($atts["id"]), null );
-	} else {
-		//display miniplan
-		$ret .= '<h3>Miniplan - gültig vom ' . miniplan_date_format($results[0]->beginning) . ' bis zum ' . miniplan_date_format($results[0]->until) . '</h3>
-        	        <!--[if IE 6]>' . miniplan_message( 'Dieser Browser wird nicht unterstützt.' , 'error' ) . '<![endif]-->' .
-						((strlen($results[0]->attendance) > 0) ? '<div id="attendance"><strong><p>Bereitschaft: ' . $results[0]->attendance . '</strong></p></div>' : '') .
-						'<pre id="miniplan_content">' . $results[0]->text . '</pre>' .
-						((strlen($results[0]->notification) > 0) ? ('</br>' . miniplan_message($results[0]->notification, 'notification')) : '') . '</div>';
-		$ret .= print_miniplan_admin_form( intval($atts["id"]) , $results[0]);
-	}
-	return $ret;
-}
+defined('MINIPLAN_ABSPATH') or die("[!] This script must be executed by a Wordpress instance!\r\n");
 
 /**
  * @param $feed_id: the current feed id (int)
@@ -80,14 +18,14 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 		$current_mpl->beginning = (isset($current_mpl->beginning) && is_string($current_mpl->beginning)) ? new DateTime($current_mpl->beginning) : NULL;
 		$current_mpl->until = (isset($current_mpl->until) && is_string($current_mpl->until)) ? new DateTime($current_mpl->until) : NULL;
 		$master_mpl = new stdClass();
-		$newdef = ($current_mpl === null || get_query_var( "miniplan_admin_action", "" ) === "upload");
-		$master_mpl->text         = (($newdef || (strlen($current_mpl->text) === 0)         ? ('')         : ($current_mpl->text)));
-		$master_mpl->attendance   = (($newdef || (strlen($current_mpl->attendance) === 0)   ? ('')         : ($current_mpl->attendance)));
-		$master_mpl->notification = (($newdef || (strlen($current_mpl->notification) === 0) ? ('')         : ($current_mpl->notification)));
-		$master_mpl->beginning    = (($newdef || ! $current_mpl->beginning instanceof DateTime) ? (DateTime::createFromFormat('d.m.y', date('d.m.y'))) : ($current_mpl->beginning));
+		$new_def = ($current_mpl === null || get_query_var( "miniplan_admin_action", "" ) === "upload");
+		$master_mpl->text         = (($new_def || (strlen($current_mpl->text) === 0)         ? ('')         : ($current_mpl->text)));
+		$master_mpl->attendance   = (($new_def || (strlen($current_mpl->attendance) === 0)   ? ('')         : ($current_mpl->attendance)));
+		$master_mpl->notification = (($new_def || (strlen($current_mpl->notification) === 0) ? ('')         : ($current_mpl->notification)));
+		$master_mpl->beginning    = (($new_def || ! $current_mpl->beginning instanceof DateTime) ? (DateTime::createFromFormat('d.m.y', date('d.m.y'))) : ($current_mpl->beginning));
 		$master_mpl->until = clone $master_mpl->beginning;
-		$master_mpl->until        = (($newdef || ! $current_mpl->until instanceof DateTime) ? ($master_mpl->until->add(date_interval_create_from_date_string('6 days'))) : ($current_mpl->until));
-		$master_mpl->id           = (($newdef || !is_numeric($current_mpl->id))             ? (-1)         : (intval($current_mpl->id)));
+		$master_mpl->until        = (($new_def || ! $current_mpl->until instanceof DateTime) ? ($master_mpl->until->add(date_interval_create_from_date_string('6 days'))) : ($current_mpl->until));
+		$master_mpl->id           = (($new_def || !is_numeric($current_mpl->id))             ? (-1)         : (intval($current_mpl->id)));
 
 		$content = '<div class="miniplan_admin_panel" id="miniplan_admin_panel"><h3>Miniplan Admin-Panel</h3>';
 
@@ -132,10 +70,10 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 						var newDateBeg = jQuery.datepicker.parseDate("dd.mm.y", dateText);
 						var newDateUntil = new Date(newDateBeg.getFullYear(), newDateBeg.getMonth(), newDateBeg.getDate() + 6);
 						jQuery("#until-datepicker").val(jQuery.datepicker.formatDate("dd.mm.y", newDateUntil));
-                                        }
+										}
 				});
 			});
-	        </script>
+			</script>
 		<noscript><input type="datetime" placeholder="Beginn (dd.mm.y)" id="beginning-datepicker" name="mpl_beginning" class="input-xlarge" required value="' . miniplan_date_format($master_mpl->beginning) . '"/ style="width:90%;"></noscript>
 	</div>
 
@@ -149,7 +87,7 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 					dateFormat : "dd.mm.y",
 				});
 			});
-	        </script>
+			</script>
 		<noscript><input type="datetime" placeholder="bis (dd.mm.y)"  id="until-datepicker" name="mpl_until" class="input-xlarge" required value="' . miniplan_date_format($master_mpl->until) . '"/ style="width:90%;"></noscript>
 	</div>
 
@@ -161,33 +99,33 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 			document.write( \'<div id="datepicker"></div><p>Gilt vom <input placeholder="Beginn (dd.mm.y)" id="beginning-datepicker" name="mpl_beginning" class="input-xlarge hasDatepicker" required="required" style="size=10;" type="text"> \
 				bis <input placeholder="Beginn (dd.mm.y)" id="until-datepicker" name="mpl_beginning" class="input-xlarge hasDatepicker" required="required" style="size=10;" type="text">\' );
 
-	                /*
-	                 * jQuery UI Datepicker: Using Datepicker to Select Date Range
-	                 * http://salman-w.blogspot.com/2013/01/jquery-ui-datepicker-examples.html
-	                 */
+					/*
+					 * jQuery UI Datepicker: Using Datepicker to Select Date Range
+					 * http://salman-w.blogspot.com/2013/01/jquery-ui-datepicker-examples.html
+					 */
 
-	                jQuery(function() {
-	                        jQuery("#datepicker").datepicker({
-	                                beforeShowDay: function(date) {
-	                                        var date1 = jQuery.datepicker.parseDate(jQuery.datepicker._defaults.dateFormat, jQuery("#beginning-datepicker").val());
-	                                        var date2 = jQuery.datepicker.parseDate(jQuery.datepicker._defaults.dateFormat, jQuery("#until-datepicker").val());
-	                                        return [true, date1 && ((date.getTime() == date1.getTime()) || (date2 && date >= date1 && date <= date2)) ? "dp-highlight" : ""];
-	                                },
-	                                onSelect: function(dateText, inst) {
-	                                        var date1 = jQuery.datepicker.parseDate(jQuery.datepicker._defaults.dateFormat, jQuery("#beginning-datepicker").val());
-	                                        var date2 = jQuery.datepicker.parseDate(jQuery.datepicker._defaults.dateFormat, jQuery("#until-datepicker").val());
-	                                        if (!date1 || date2) {
-	                                                jQuery("#beginning-datepicker").val(dateText);
-	                                                jQuery("#until-datepicker").val("");
-	                                                jQuery(this).datepicker("option", "minDate", dateText);
-	                                        } else {
-	                                                jQuery("#until-datepicker").val(dateText);
-	                                                jQuery(this).datepicker("option", "minDate", null);
-	                                        }
-	                                }
-	                        });
-	                });
-	        </script>
+					jQuery(function() {
+							jQuery("#datepicker").datepicker({
+									beforeShowDay: function(date) {
+											var date1 = jQuery.datepicker.parseDate(jQuery.datepicker._defaults.dateFormat, jQuery("#beginning-datepicker").val());
+											var date2 = jQuery.datepicker.parseDate(jQuery.datepicker._defaults.dateFormat, jQuery("#until-datepicker").val());
+											return [true, date1 && ((date.getTime() == date1.getTime()) || (date2 && date >= date1 && date <= date2)) ? "dp-highlight" : ""];
+									},
+									onSelect: function(dateText, inst) {
+											var date1 = jQuery.datepicker.parseDate(jQuery.datepicker._defaults.dateFormat, jQuery("#beginning-datepicker").val());
+											var date2 = jQuery.datepicker.parseDate(jQuery.datepicker._defaults.dateFormat, jQuery("#until-datepicker").val());
+											if (!date1 || date2) {
+													jQuery("#beginning-datepicker").val(dateText);
+													jQuery("#until-datepicker").val("");
+													jQuery(this).datepicker("option", "minDate", dateText);
+											} else {
+													jQuery("#until-datepicker").val(dateText);
+													jQuery(this).datepicker("option", "minDate", null);
+											}
+									}
+							});
+					});
+			</script>
 		<noscript>
 			<label class="control-label" for="beginning-datepicker">Gültig von:</label>
 			<div class="controls">
@@ -238,10 +176,11 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 		$submitState = (get_query_var( "mpl_submit", "false" ) === "FORCE" ? "FORCE" : get_query_var( "mpl_submit", "false" ) === "TRUE");
 //		$submitState = (get_query_var( "mpl_submit", "false" ) === "TRUE" || get_query_var( "mpl_submit", "false" ) === "force");
 
-		switch (get_query_var( "miniplan_admin_action", "" )) {
+		switch ( get_query_var( "miniplan_admin_action", "" ) ) {
 			case "upload":
 				if ($submitState) {
-					miniplan_add_new($feed_id, get_query_var( "mpl_text", "" ), get_query_var( "mpl_attendance", "" ), get_query_var( "mpl_notification", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
+					miniplan_db::add_new_miniplan($feed_id, get_query_var( "mpl_text", "" ), get_query_var( "mpl_attendance", "" ),
+                        get_query_var( "mpl_notification", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
 					$content .= miniplan_message("Der Miniplan wurde erfolgreich hochgeladen.", "success") . $proceed_btn . '</div>';
 				} else {
 					$content .= $miniplan_edit_form . $cancel_btn . '</div>';
@@ -249,7 +188,8 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 				break;
 			case "edit":
 				if ($submitState) {
-					miniplan_edit_existing($master_mpl->id, $feed_id, get_query_var( "mpl_text", "" ), get_query_var( "mpl_attendance", "" ), get_query_var( "mpl_notification", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
+					miniplan_db::edit_existing_miniplan($master_mpl->id, $feed_id, get_query_var( "mpl_text", "" ), get_query_var( "mpl_attendance", "" ),
+                        get_query_var( "mpl_notification", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
 					$content .= miniplan_message("Der Miniplan wurde erfolgreich bearbeitet.", "success") . $proceed_btn . '</div>';
 				} else {
 					$content .= $miniplan_edit_form . $cancel_btn . '</div>';
@@ -258,7 +198,7 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 			case "delete":
 				if ($submitState) {
 					if ( !$master_mpl->id == "-1" || $submitState == "FORCE" ) {
-						miniplan_delete_existing($master_mpl->id);
+						miniplan_db::delete_existing_miniplan($master_mpl->id);
 						$content .= miniplan_message("Der Miniplan wurde erfolgreich gel&ouml;scht.", "success") . $proceed_btn . '</div>';
 					} else {
 						$content .= $miniplan_delete_current_form . $cancel_btn . '</div>';
@@ -279,7 +219,6 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 	}
 }
 
-
 /**
  * creates the admin menu page in wordpress admin section
  */
@@ -294,75 +233,6 @@ function miniplan_menu_pages() {
 	add_options_page($page_title, $menu_title, $capability, $menu_slug, $function);
 }
 
-/**
- * creates the settings tab
- */
-function miniplan_admin_settings() {
-	if (!current_user_can('manage_options')) {
-		wp_die('You do not have sufficient permissions to access this page.');
-	}
-
-	global $wp_roles;
-	$privileged_roles = array();
-	$changes = false;
-	if (isset($_POST['reset'])) {
-		global $miniplan_default_privileged_roles;
-		$privileged_roles = $miniplan_default_privileged_roles;
-		$changes = true;
-	} else if (isset($_POST['submit'])) {
-		foreach ($wp_roles->get_names() as $role) {
-			if (isset($_POST['role_' . strtolower($role)])) {
-				if ($_POST['role_' . strtolower($role)] === "true") {
-					$privileged_roles[] = strtolower($role);
-				}
-			}
-		}
-		$changes = true;
-	}
-	if ($changes) {
-		if (sizeof($privileged_roles) > 0) {
-			update_option('miniplan_privileged_roles', $privileged_roles);
-			echo '<div id="message" class="updated fade"><p><strong>' . __('Options saved.') . '</strong></p></div>';
-		} else { echo '<div id="message" class="error fade"><p><strong>Es wurde keine Rolle als priviligiert ausgew&auml;lt. Die Einstellungen wurden nicht gespeichert!</strong></p></div>'; }
-	}
-
-
-	?>
-                <div class="wrap">
-                        <h2>Miniplan <?php _e('Settings')?></h2>
-			<!---<p>Sie benutzen Version ' . '' . '</p>--->
-			<p class="howto">Beachte: Wenn du einen Miniplan auf einer Seite anzeigen m&ouml;chtest, dann f&uuml;ge einfach den text <code>[miniplan id="x"]</code> in den Post oder auf in die Seite ein. (x steht f&uuml;r die id des Feeds. Falls du nur einen Miniplan auf deiner Wordpress Seite anzeigen willst, dann verwende einfach 1).</p>
-                        <form method="post" action="<?php echo $_SERVER['REQUEST_URI'] ?>">
-                                <table class="form-table">
-                                        <tbody>
-                                                <tr valign="top">
-                                                        <th scope="row">
-                                                                <label for="miniplan_privileged_roles">Privilegierte User Rollen:</label>
-								<p class="howto">Ein User muss in einer der ausgew&auml;hlten Rolle sein, um einen Miniplan zu bearbeiten.</p>
-                                                        </th>
-                                                        <td>
-								<fieldset id="miniplan_privileged_roles">
-								<?php
-									foreach ($wp_roles->get_names() as $role) {
-										echo '<label for="role_' . strtolower($role) . '">
-											<input name="role_' . strtolower($role) . '" id="role_' . strtolower($role) . '" value="true" ' . (in_array(strtolower($role), get_option('miniplan_privileged_roles')) ? 'checked="checked"' : '') . ' type="checkbox">
-										' . __($role) . '</label><br>';
-									}
-								?>
-								</fieldset>
-                                                        </td>
-                                        </tbody>
-                                </table>
-				<p class="submit">
-					<input type="submit" name="submit" value="<?php echo _e('Save Changes'); ?>" class="button button-primary">
-					<input type="submit" name="reset" value="<?php echo _e('Reset Changes'); ?>" class="button button-secondary reset">
-				</p>
-                        </form>
-                </div>
-	<?php
-
-}
-
 /*function miniplan_admin_help() {
 	if (!current_user_can('manage_options')) {
 		wp_die('You do not have sufficient permissions to access this page.');
@@ -373,29 +243,29 @@ function miniplan_admin_settings() {
 
 /**
  * formats a date from a string to a human well readable string or a human well readable date to a sql readable date
- * @param date|string $strdate: the date as string
+ * @param DateTime|string $strdate: the date as string
  * @param string $mode: 'human' or 'sql'
  * @return bool|string: the new string containing the date or false, if an error occurred
  */
 function miniplan_date_format( $strdate , $mode="human") {
-	$dtdate;
+	$dt_date = new DateTime();
 	if (is_string($strdate)) {
 		if (strpos($strdate, '.')) {
 			$pts = explode('.', $strdate, 3);
-			$dtdate = new DateTime($pts[2] . '-' . $pts[1] . '-' . $pts[0]); //Y-m-d
+			$dt_date = new DateTime($pts[2] . '-' . $pts[1] . '-' . $pts[0]); //Y-m-d
 		} else if (strpos($strdate, '-')) {
-			$dtdate = new DateTime($strdate);
+			$dt_date = new DateTime($strdate);
 		}
 	} else {
-		$dtdate = $strdate;
+		$dt_date = $strdate;
 	}
 
-	if ($dtdate instanceof DateTime) {
-		return ($mode === "human") ? $dtdate->format('d.m.y') : $dtdate->format('Y-m-d');
-//		return ($mode === "human") ? $dtdate->format(get_option('date_format')) : $dtdate->format('Y-m-d');
+	if ($dt_date instanceof DateTime) {
+		return ($mode === "human") ? $dt_date->format('d.m.y') : $dt_date->format('Y-m-d');
+//		return ($mode === "human") ? $dt_date->format(get_option('date_format')) : $dt_date->format('Y-m-d');
 	} else {
 		if (WP_DEBUG === true) { error_log("Got a wrong date format. (in miniplan_date_format)"); }
-                apply_filters('debug', "Got a wron date format. (in miniplan_date_format)");
+				apply_filters('debug', "Got a wrong date format. (in miniplan_date_format)");
 		return $strdate;
 	}
 }
