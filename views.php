@@ -53,15 +53,15 @@ function print_miniplan( $atts ) {
 	if ($results === null || $results == "" || empty($results)) {
 		if (WP_DEBUG === true) { error_log("Something went wrong, while fetching the miniplan!"); }
 		apply_filters('debug', "Something went wrong, while fetching the miniplan!");
-		$ret .= miniplan_message("Der Miniplan ist entweder nicht verfügbar oder kann aufgrund eines internen Fehlers nicht angezeigt werden.", "error") . '</div>';
+		$ret .= miniplan_message( "Der Miniplan ist entweder nicht verfügbar oder kann aufgrund eines internen Fehlers nicht angezeigt werden.", "error" ) . '</div>';
 		$ret .= print_miniplan_admin_form( intval($atts["id"]), null );
 	} else {
 		//display miniplan
-		$ret .= '<h3>Miniplan - gültig vom ' . miniplan_date_format($results[0]->beginning) . ' bis zum ' . miniplan_date_format($results[0]->until) . '</h3>
+		$ret .= '<h3>Miniplan (' . miniplan_date_format($results[0]->beginning) . ' bis ' . miniplan_date_format($results[0]->until) . ')</h3>
         	        <!--[if IE 6]>' . miniplan_message( 'Dieser Browser wird nicht unterstützt.' , 'error' ) . '<![endif]-->' .
 						((strlen($results[0]->attendance) > 0) ? '<div id="attendance"><strong><p>Bereitschaft: ' . $results[0]->attendance . '</strong></p></div>' : '') .
 						'<pre id="miniplan_content">' . $results[0]->text . '</pre>' .
-						((strlen($results[0]->notification) > 0) ? ('</br>' . miniplan_message($results[0]->notification, 'notification')) : '') . '</div>';
+						((strlen($results[0]->notification) > 0) ? ('</br>' . miniplan_message( str_replace( PHP_EOL, '<br />', $results[0]->notification ), 'notification')) : '') . '</div>';
 		$ret .= print_miniplan_admin_form( intval($atts["id"]) , $results[0]);
 	}
 	return $ret;
@@ -111,12 +111,12 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 				o.style.height = (o.scrollHeight)+"px";
 			}
 		</script>
-		<textarea id="new_mpl" name="mpl_text" required placeholder="Miniplan" onkeyup="textAreaAdjust(this)" style="font-family:\'Lucida Console\', monospace; height:25em; width:90%;">' . $master_mpl->text . '</textarea>
+		<textarea id="new_mpl" name="mpl_text" required="" placeholder="Miniplan" onkeyup="textAreaAdjust(this)" style="font-family:\'Lucida Console\', monospace; height:25em; width:90%;">' . $master_mpl->text . '</textarea>
 	</div>
 
-	<label class="control-label" for="notification">Benachrichtigungen:</label>
+	<label class="control-label" for="notification_edit">Benachrichtigungen:</label>
 	<div class="controls">
-		<input id="notification" name="mpl_notification" placeholder="Benachrichtigungen" value="' . $master_mpl->notification . '" class="input-xlarge" type="text" style="width:90%;">
+		<textarea id="notification_edit" name="mpl_notification" placeholder="Benachrichtigungen" onkeyup="textAreaAdjust(this)" class="input-xlarge" style="width:90%;">' . $master_mpl->notification . '</textarea>
 		<p class="help-block">Falls Miniproben o.&Auml;. anstehen, kann man das hier eintragen.</p>
 	</div>
 
