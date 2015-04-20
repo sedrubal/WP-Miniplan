@@ -44,7 +44,9 @@ function miniplan_update_db_check() {
  */
 function miniplan_uninstall() {
 	miniplan_drop_db();
-	delete_option('miniplan_privileged_roles');
+    delete_option('miniplan_privileged_roles');
+    delete_option('miniplan_send_mail');
+    delete_option('miniplan_email_address');
 }
 
 /**
@@ -65,6 +67,8 @@ function add_miniplan_query_vars_filter( $vars ){
   $vars[] = "mpl_beginning";
   $vars[] = "mpl_until";
   $vars[] = "mpl_submit";
+  $vars[] = "mpl_send_mail";
+  $vars[] = "mpl_email_address";
   return $vars;
 }
 add_filter( 'query_vars', 'add_miniplan_query_vars_filter' );

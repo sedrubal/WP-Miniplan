@@ -93,8 +93,16 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 
 		/**
 		 * VARIABLES--------------------------------------------------------------------
-		*/
-		$miniplan_edit_form = '<form action="' . $_SERVER['REQUEST_URI'] . '#miniplan_admin_panel" method="post" class="form-horizontal"><fieldset>
+         */
+        
+        $email_form = '<!---<label class="control-label" for="email_address_input">E-Mail Benachrichtigung:</label>
+        <div class="controls">
+            <label><input name="mpl_send_mail" id="send_mail_chkbox" class="checkbox" value="TRUE" ' . ( get_site_option( 'miniplan_send_mail' ) === 'TRUE' ? 'checked="yes"' : '' ) . 
+            ' type="checkbox"> Sende E-Mail Benachrichtigung an: </label>
+            <input name="mpl_email_address" id="email_address_input" class="input-xlarge" style="width:50%" value="' . get_site_option( 'miniplan_email_address' ) . 
+            '" placeholder="E-Mail Adresse" type="text" onkeyup="document.getElementById(\'send_mail_chkbox\').checked = true;" >
+        </div>-->';
+	    $miniplan_edit_form = '<form action="' . $_SERVER['REQUEST_URI'] . '#miniplan_admin_panel" method="post" class="form-horizontal"><fieldset>
 	<legend><h3>' . ((get_query_var( "miniplan_admin_action", "upload" ) === 'upload') ? 'Einen neuen Miniplan hochladen' : 'Den ausgew&auml;hlten Miniplan bearbeiten') . '</h3></legend>
 
 	<label class="control-label" for="attendance">Bereitschaft:</label>
@@ -201,11 +209,12 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 	</div>
 --->
 
+    ' . $email_form . '
 	<div class="control-group">
 		<div class="controls">
 			<button id="submit" name="mpl_submit" class="btn btn-default" value="TRUE">' . ((get_query_var( "miniplan_admin_action", "upload" ) === 'upload') ? 'Hochladen' : 'Aktualisieren') . '</button>
 		</div>
-	</div>
+    </div>
 </fieldset></form>';
 
 		$miniplan_delete_form = '<form action="' . $_SERVER['REQUEST_URI'] . '#miniplan_admin_panel" method="post" class="form-horizontal"><fieldset>
@@ -220,46 +229,72 @@ function print_miniplan_admin_form( $feed_id , $current_mpl ) {
 		$miniplan_delete_current_form = '<form action="' . $_SERVER['REQUEST_URI'] . '#miniplan_admin_panel" method="post" class="form-horizontal"><fieldset>
 	<legend><h3>Ausgew&auml;hlten Miniplan l&ouml;schen</h3></legend>' .
 	miniplan_message('M&ouml;chtest du wirklich den <b> aktuellen </b> Miniplan vom ' . miniplan_date_format($master_mpl->beginning) . ' bis zum ' . miniplan_date_format($master_mpl->until) . ' l&ouml;schen?', "question") .
-	'<div class="control-group">
+    $email_form . '
+	<div class="control-group">
 		<div class="controls">
 			<button id="submit" name="mpl_submit" class="btn btn-default delete" value="FORCE">L&ouml;schen</button>
 		</div>
-	</div>
+    </div>
 </fieldset></form>';
-		$cancel_btn = '<form method="get" action="' . $_SERVER['REQUEST_URI'] . '#miniplan">
-				<button name="miniplan_admin_action" id="cancel_btn" class="btn btn-default cancel" value="select" type="submit" formmethod="get" >Abbrechen</button>
-				<input type="hidden" name="miniplan" value="' . $master_mpl->id . '" /></form>';
-		$proceed_btn = '<form method="get" action="' . $_SERVER['REQUEST_URI'] . '#miniplan"><button name="miniplan_admin_action" id="proceed_btn" class="btn btn-default" value="proceed" type="submit" formmethod="get" >Fortfahren</button>
-				<input type="hidden" name="miniplan" value="' . ((get_query_var( "miniplan_admin_action", "" ) === 'delete') ? 'latest' : $master_mpl->id) . '" /></form>';
+    $cancel_btn = '<form method="get" action="' . $_SERVER['REQUEST_URI'] . '#miniplan">
+        <button name="miniplan_admin_action" id="cancel_btn" class="btn btn-default cancel" value="select" type="submit" formmethod="get" >Abbrechen</button>
+		<input type="hidden" name="miniplan" value="' . $master_mpl->id . '" /></form>';
+    $proceed_btn = '<form method="get" action="' . $_SERVER['REQUEST_URI'] . '#miniplan">
+        <button name="miniplan_admin_action" id="proceed_btn" class="btn btn-default" value="proceed" type="submit" formmethod="get" >Fortfahren</button>
+        <input type="hidden" name="miniplan" value="' . ((get_query_var( "miniplan_admin_action", "" ) === 'delete') ? 'latest' : $master_mpl->id) . '" /></form>';
 
 		/**
 		 * ----------------------------------------------</VARIABLES>
 		*/
-		$submitState = (get_query_var( "mpl_submit", "false" ) === "FORCE" ? "FORCE" : get_query_var( "mpl_submit", "false" ) === "TRUE");
-//		$submitState = (get_query_var( "mpl_submit", "false" ) === "TRUE" || get_query_var( "mpl_submit", "false" ) === "force");
+    $submitState = ( get_query_var( "mpl_submit", "false" ) === "FORCE" ? "FORCE" : get_query_var( "mpl_submit", "false" ) === "TRUE" );
+    $admin_action = get_query_var( "miniplan_admin_action", "" );
 
-		switch (get_query_var( "miniplan_admin_action", "" )) {
+		switch ( $admin_action ) {
 			case "upload":
-				if ($submitState) {
+				if ( $submitState ) {
 					miniplan_add_new($feed_id, get_query_var( "mpl_text", "" ), get_query_var( "mpl_attendance", "" ), get_query_var( "mpl_notification", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
-					$content .= miniplan_message("Der Miniplan wurde erfolgreich hochgeladen.", "success") . $proceed_btn . '</div>';
+                    $content .= miniplan_message("Der Miniplan wurde erfolgreich hochgeladen.", "success");
+                    if ( get_query_var( "mpl_send_mail", "false" ) === 'TRUE' ) {
+                        $subject = get_bloginfo('name') . ' - Neuer Minplan '; //TODO: von bis
+                        $message = 'Hallo,
+                            
+Der neue Miniplan wurde veröffentlicht: '; //TODO message
+                        $content .= miniplan_send_mail_notification( get_query_var( 'mpl_email_address' ), $subject, $message );
+                    }
+                    $content .= $proceed_btn . '</div>';
 				} else {
 					$content .= $miniplan_edit_form . $cancel_btn . '</div>';
 				}
 				break;
-			case "edit":
-				if ($submitState) {
+            case "edit":
+				if ( $submitState ) {
 					miniplan_edit_existing($master_mpl->id, $feed_id, get_query_var( "mpl_text", "" ), get_query_var( "mpl_attendance", "" ), get_query_var( "mpl_notification", "" ), get_query_var( "mpl_beginning", "" ), get_query_var( "mpl_until", "" ));
-					$content .= miniplan_message("Der Miniplan wurde erfolgreich bearbeitet.", "success") . $proceed_btn . '</div>';
+					$content .= miniplan_message("Der Miniplan wurde erfolgreich bearbeitet.", "success");
+                    if ( get_query_var( "mpl_send_mail", "false" ) === 'TRUE' ) {
+                        $subject = get_bloginfo('name') . ' - Minplan bearbeitet '; //TODO: von bis
+                        $message = 'Hallo,
+                            
+                            Ein Miniplan wurde bearbeitet: '; //TODO message
+                        $content .= miniplan_send_mail_notification( get_query_var( 'mpl_email_address' ), $subject, $message );
+                    }
+                    $content .= $proceed_btn . '</div>';
 				} else {
 					$content .= $miniplan_edit_form . $cancel_btn . '</div>';
 				}
 				break;
 			case "delete":
-				if ($submitState) {
-					if ( !$master_mpl->id == "-1" || $submitState == "FORCE" ) {
+				if ( $submitState ) {
+					if ( $master_mpl->id != "-1" || $submitState == "FORCE" ) {
 						miniplan_delete_existing($master_mpl->id);
-						$content .= miniplan_message("Der Miniplan wurde erfolgreich gel&ouml;scht.", "success") . $proceed_btn . '</div>';
+                        $content .= miniplan_message("Der Miniplan wurde erfolgreich gel&ouml;scht.", "success");
+                        if ( get_query_var( "mpl_send_mail", "false" ) === 'TRUE' && $submitState == "FORCE" ) {
+                            $subject = get_bloginfo('name') . ' - Minplan gelöscht '; //TODO: von bis
+                            $message = 'Hallo,
+                            
+Der aktuelle Miniplan wurde gelöscht: '; //TODO message
+                            $content .= miniplan_send_mail_notification( get_query_var( 'mpl_email_address' ), $subject, $message );
+                        }
+                        $content .= $proceed_btn . '</div>';
 					} else {
 						$content .= $miniplan_delete_current_form . $cancel_btn . '</div>';
 					}
@@ -408,4 +443,25 @@ function miniplan_date_format( $strdate , $mode="human") {
  */
 function miniplan_message( $message , $state ) {
 	return '<div class="messagebox ' . ($state === "success" ? 'success" style="border:1px solid black;margin:5px;padding:5px;text-align:center;color:white;background-color:#55AA55;"' : 'error" style="border:1px solid black;margin:5px;padding:5px;text-align:center;color:white;background-color:#AA5555;"') . ' id="messagebox"><h4>' . $message . '</h4></div>';
+}
+
+/**
+ * Sends a e-mail and displays error messages on errors
+ * @param string $address: The e-mail address to send the mail to
+ * @param string $subject: The subject for the e-mail
+ * @param string $message: The message body for the e-mail
+ * @return string: A html div, containing a message (see miniplan_message)
+ */
+function miniplan_send_mail_notification( $address, $subject, $message ) {
+    if ( preg_match( '/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/', $address ) === 1 ) {
+        if ( mail( $address, $subject, $message, 'From: ' . get_bloginfo( 'name' ) . ' Website' ) ) {
+            add_option( 'miniplan_send_mail', 'TRUE' );
+            add_option( 'miniplan_email_address', $address );
+            return miniplan_message( 'Die E-Mail wurde erfolgreich verschickt.', 'success' );
+        } else {
+            return miniplan_message( 'Es trat ein Fehler beim Versenden der E-Mail auf. Bitte pr&uuml;fe den Empf&auml;nger und verschicke die E-Mail manuell.' );
+        }
+    } else {
+        return miniplan_message( 'Es konnte keine E-Mail versendet werden: Bitte geb eine g&uuml;ltige E-Mail Adresse ein.', 'error' );
+    }
 }
