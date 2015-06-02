@@ -305,7 +305,7 @@ Der aktuelle Miniplan wurde gelöscht: '; //TODO message
 			default:
 				$content .= '<p>Wähle eine Aktion:</p><form action="' . $_SERVER['REQUEST_URI'] . '#miniplan_admin_panel" method="get">
 						<input type="hidden" name="miniplan" value="' . $master_mpl->id . '" />
-						<button name="miniplan_admin_action" id="upload_btn" class="btn btn-default upload" value="upload">Einen neuen Plan hochladen</button>
+						<button name="miniplan_admin_action" id="upload_btn" class="btn btn-default upload" value="upload">Einen neuen Plan erstellen</button>
 						<button name="miniplan_admin_action" id="edit_btn" class="btn btn-default edit" value="edit" ' . ((count($current_mpl) === 0) ? 'disabled' : '') . '>Den ausgew&auml;hlten Plan bearbeiten</button>
 						<button name="miniplan_admin_action" id="delete_btn" class="btn btn-default delete" value="delete" ' . ((count($current_mpl) === 0) ? 'disabled' : '') . '>Den ausgew&auml;hlten Plan l&ouml;schen</button>
 					</form></div>';
