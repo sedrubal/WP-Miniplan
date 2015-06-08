@@ -80,6 +80,24 @@ register_uninstall_hook(__FILE__, 'miniplan_uninstall');
 
 // SHORTCODES ( [miniplan id="x"] )
 add_shortcode( 'miniplan', 'print_miniplan' );
+// SHORTCODES ( [miniplan_notification id="x"] )
+add_shortcode( 'miniplan_notification', 'print_miniplan_notification' );
+
+/**
+ * adds a button for the shortcode into the editor
+ */
+function miniplan_editor_add_quicktags() {
+    $current_screen = get_current_screen();
+    if ( !wp_script_is( 'quicktags' ) || $current_screen->parent_base != 'edit' || $current_screen->post_type != 'page' || !current_user_can( 'edit_pages' ) ) { return; }
+        echo "\n".'<script type=\'text/javascript\'>'."\n".'// <![CDATA['."\n".'QTags.addButton( \'mpl_qtbtn\', \'Miniplan\', \'[miniplan id=""]\', \'\', \'\', \'\', 500 );'."\n".'// ]]>'."\n".'</script>';
+}
+function miniplan_notification_editor_add_quicktags() {
+    $current_screen = get_current_screen();
+    if ( !wp_script_is( 'quicktags' ) || $current_screen->parent_base != 'edit' || $current_screen->post_type != 'page' || !current_user_can( 'edit_pages' ) ) { return; }
+        echo "\n".'<script type=\'text/javascript\'>'."\n".'// <![CDATA['."\n".'QTags.addButton( \'mpl_not_qtbtn\', \'Miniplan Notifications\', \'[miniplan_notification id=""]\', \'\', \'\', \'\', 501 );'."\n".'// ]]>'."\n".'</script>';
+}
+add_action( 'admin_print_footer_scripts', 'miniplan_editor_add_quicktags' );
+add_action( 'admin_print_footer_scripts', 'miniplan_notification_editor_add_quicktags' );
 
 // Register style sheet and scripts for datepicker.
 // TODO: remove google spying
