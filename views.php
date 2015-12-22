@@ -61,7 +61,7 @@ function print_miniplan( $atts ) {
         	        <!--[if IE 6]>' . miniplan_message( 'Dieser Browser wird nicht unterstützt.' , 'error' ) . '<![endif]-->' .
 						((strlen($results[0]->attendance) > 0) ? '<div id="attendance"><strong><p>Bereitschaft: ' . $results[0]->attendance . '</strong></p></div>' : '') .
 						'<pre id="miniplan_content">' . $results[0]->text . '</pre>' .
-						((strlen($results[0]->notification) > 0) ? ('</br>' . miniplan_message( str_replace( PHP_EOL, '<br />', $results[0]->notification ), 'notification')) : '') . '</div>';
+						((strlen($results[0]->notification) > 0) ? ('<br />' . miniplan_message( str_replace( PHP_EOL, '<br />', $results[0]->notification ), 'notification')) : '') . '</div>';
 		$ret .= print_miniplan_admin_form( intval($atts["id"]) , $results[0]);
 	}
 	return $ret;
@@ -355,7 +355,7 @@ function miniplan_admin_settings() {
 		$changes = true;
 	}
 	if ($changes) {
-		if (sizeof($privileged_roles) > 0) {
+		if (count($privileged_roles) > 0) {
 			update_option('miniplan_privileged_roles', $privileged_roles);
 			echo '<div id="message" class="updated fade"><p><strong>' . __('Options saved.') . '</strong></p></div>';
 		} else { echo '<div id="message" class="error fade"><p><strong>Es wurde keine Rolle als priviligiert ausgew&auml;lt. Die Einstellungen wurden nicht gespeichert!</strong></p></div>'; }
@@ -442,7 +442,11 @@ function miniplan_date_format( $strdate , $mode="human") {
  * @return string: A html div, containing the message
  */
 function miniplan_message( $message , $state ) {
-	return '<div class="messagebox ' . ($state === "success" ? 'success" style="border:1px solid black;margin:5px;padding:5px;text-align:center;color:white;background-color:#55AA55;"' : 'error" style="border:1px solid black;margin:5px;padding:5px;text-align:center;color:white;background-color:#AA5555;"') . ' id="messagebox"><h4>' . $message . '</h4></div>';
+    return '<div class="messagebox ' . 
+        ($state === "success" ? 
+        'success" style="border:1px solid black;margin:5px;padding:5px;text-align:center;color:white;background-color:#55AA55;"' : 
+        'error" style="border:1px solid black;margin:5px;padding:5px;text-align:center;color:white;background-color:#AA5555;"') . 
+        ' id="messagebox"><h4>' . $message . '</h4></div>';
 }
 
 /**
