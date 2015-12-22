@@ -38,7 +38,7 @@ function print_miniplan( $atts ) {
 	if ($req_mpl === "latest" || $req_mpl === "-1") {
 		//get latest date until today
 		$mostRecent= null;
-		$now = new DateTime('Now');
+		$now = new DateTime( current_time( 'mysql', 0 ) );
 		foreach($mpl_dates as $date){
 			$curDate = new DateTime($date->beginning);
 			if ($curDate > $mostRecent && $curDate < $now) {
