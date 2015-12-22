@@ -68,6 +68,41 @@ function print_miniplan( $atts ) {
 }
 
 /**
+ * prints the current miniplan notification
+ * @param array $atts: the Wordpress tag attributes
+ * @return string: the current miniplan notifications
+ */
+function print_miniplan_notification( $atts ) {
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'miniplan';
+
+	$mpl_data = $wpdb->get_results( 'SELECT beginning,notification FROM `' . $table_name . '` WHERE feed_id = \'' . intval($atts["id"]) . '\' ORDER BY beginning DESC', OBJECT ); //get available plans from db
+
+    //get latest date until today
+    $mostRecent= new DateTime('01-01-1970');
+    $now = new DateTime( current_time( 'mysql', 0 ) );
+    $latest = NULL;
+    foreach( $mpl_data as $mpl ) {
+        $curDate = new DateTime($mpl->beginning);
+        $latestDate = ( $latest !== NULL ? new DateTime($latest->beginning) : new DateTime( '01-01-1970' ) );
+
+        // TODO get current Date!!!!!!! SCHEISSSSS FRICKEL PHP!!!!!
+        if ( $latestDate >= $mostRecent && $curDate <= $now) {
+            $latest = $mpl;
+        }
+    }
+
+    if ( $latest == NULL ) {
+		if (WP_DEBUG === true) { error_log("Something went wrong, while fetching the miniplan notifications!"); }
+		apply_filters('debug', "Something went wrong, while fetching the miniplan notifications!");
+		return(miniplan_message( "Benachrichtigungen sind entweder nicht verfügbar oder können aufgrund eines internen Fehlers nicht angezeigt werden.", "error" ) . '</div>');
+	} else {
+		//display miniplan notification
+        return(((strlen($latest->notification) > 0) ? ('<br />' . miniplan_message( str_replace( PHP_EOL, '<br />', $latest->notification ), 'notification')) : ''));
+	}
+}
+
+/**
  * @param $feed_id: the current feed id (int)
  * @param $current_mpl: A standard class containing the values of the current miniplan
  * @return string: A html upload and edit form
