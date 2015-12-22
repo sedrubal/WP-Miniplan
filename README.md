@@ -7,6 +7,9 @@ See also [readme.txt](readme.txt).
 
 Unfortunately only German language is supported until now.
 
+And this project is unfortunately in a very bad state and needs much rework... In the frontend everything seem to work, but the code is very very bad!
+If you want to use this however, please contact me and we can see, if it is worth for a rework...
+
 USAGE
 -----
 
